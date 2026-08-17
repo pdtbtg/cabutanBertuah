@@ -89,26 +89,26 @@
   .cabut-wrap {
     position: relative;
     border-radius: 26px;
-    padding: 10px;
   }
-  .cabut-wrap.is-drawing::before {
-    content: '';
+  .chase-svg {
     position: absolute;
     inset: 0;
-    border-radius: 26px;
-    padding: 5px;
-    background: conic-gradient(from 0deg,
-      transparent 0%, transparent 78%,
-      #fee2e2 82%, #ef4444 88%, #fbbf24 92%,
-      #ef4444 96%, transparent 100%);
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    animation: cabutChase 1s linear infinite;
-    filter: drop-shadow(0 0 8px #ef4444) drop-shadow(0 0 4px #fbbf24);
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s ease;
   }
-  @keyframes cabutChase {
-    to { transform: rotate(360deg); }
+  .cabut-wrap.is-drawing .chase-svg { opacity: 1; }
+  .chase-rect {
+    stroke: #ef4444;
+    stroke-width: 5;
+    fill: none;
+    filter: drop-shadow(0 0 6px #ef4444) drop-shadow(0 0 3px #fbbf24);
+    animation: chaseDash 1.1s linear infinite;
+  }
+  @keyframes chaseDash {
+    to { stroke-dashoffset: var(--chase-offset, -400px); }
   }
   #drawBtn {
     width: 100%;
@@ -219,6 +219,9 @@
       <div class="fw-bold fs-3" id="vvipPrizeText"></div>
     </div>
     <div class="cabut-wrap" id="cabutWrap">
+      <svg class="chase-svg" id="chaseSvg" preserveAspectRatio="none">
+        <rect class="chase-rect" id="chaseRect" />
+      </svg>
       <div class="d-grid">
         <button class="btn btn-primary btn-lg" id="drawBtn">🎉 Cabut Sekarang</button>
       </div>
@@ -261,6 +264,8 @@
   const prizeNameInput = document.getElementById('prizeName')
   const drawBtn = document.getElementById('drawBtn')
   const cabutWrap = document.getElementById('cabutWrap')
+  const chaseSvg = document.getElementById('chaseSvg')
+  const chaseRect = document.getElementById('chaseRect')
   const lastWinnerBox = document.getElementById('lastWinnerBox')
   const lastWinnerName = document.getElementById('lastWinnerName')
   const lastWinnerMykad = document.getElementById('lastWinnerMykad')
@@ -297,22 +302,60 @@
     vvipPrizeText.textContent = prizeNameInput.value.trim() || 'Hadiah Misteri'
     document.body.classList.add('vvip-mode')
     vvipExitBtn.style.display = 'inline-block'
+    setTimeout(sizeChaseRect, 50) // button size changes in VVIP layout
   }
   function exitVvipMode() {
     document.body.classList.remove('vvip-mode')
     vvipExitBtn.style.display = 'none'
+    setTimeout(sizeChaseRect, 50)
   }
   vvipToggleBtn.addEventListener('click', enterVvipMode)
   vvipExitBtn.addEventListener('click', exitVvipMode)
 
+  // ---------------- Size the LED chase to the button's real rounded-rect shape ----------------
+  // Uses stroke-dasharray/dashoffset along the actual perimeter, so the light
+  // travels the border at a constant speed regardless of the button's aspect ratio.
+  function sizeChaseRect() {
+    const rect = drawBtn.getBoundingClientRect()
+    const w = rect.width
+    const h = rect.height
+    if (!w || !h) return
+    const r = 20 // matches #drawBtn's border-radius
+    const inset = 3
+    const rw = w - inset * 2
+    const rh = h - inset * 2
+    chaseSvg.setAttribute('viewBox', `0 0 ${w} ${h}`)
+    chaseRect.setAttribute('x', inset)
+    chaseRect.setAttribute('y', inset)
+    chaseRect.setAttribute('width', rw)
+    chaseRect.setAttribute('height', rh)
+    chaseRect.setAttribute('rx', r)
+    chaseRect.setAttribute('ry', r)
+    const perimeter = 2 * (rw - 2 * r) + 2 * (rh - 2 * r) + 2 * Math.PI * r
+    const dashLen = perimeter * 0.16
+    chaseRect.style.strokeDasharray = `${dashLen}px ${perimeter - dashLen}px`
+    chaseRect.style.setProperty('--chase-offset', `${-perimeter}px`)
+  }
+  window.addEventListener('resize', sizeChaseRect)
+  sizeChaseRect()
+
   // ---------------- Flatpickr: registration eligibility window ----------------
   // "Until" is always the current moment when a draw/refresh happens — no picker needed.
+  // altInput shows the friendly Malay format (17 Ogos 2026 5:10 PM); the underlying
+  // dateFormat stays ISO-like so it's still reliably parseable by flatpickr itself.
   const fpFrom = flatpickr('#eligibleFrom', {
     enableTime: true,
+    altInput: true,
     dateFormat: 'Y-m-d H:i',
     maxDate: 'today',
-    time_24hr: true,
-    onChange: onWindowChanged
+    time_24hr: false,
+    onChange: (selectedDates, dateStr, instance) => {
+      instance.altInput.value = selectedDates[0] ? formatDateMY(selectedDates[0]) : ''
+      onWindowChanged()
+    },
+    onReady: (selectedDates, dateStr, instance) => {
+      instance.altInput.value = selectedDates[0] ? formatDateMY(selectedDates[0]) : ''
+    }
   })
 
   function onWindowChanged() {
