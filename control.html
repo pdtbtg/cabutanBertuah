@@ -45,7 +45,7 @@
   #controlScreen {
     display: none;
     padding: 3dvh 3vw;
-    max-width: 700px;
+    max-width: 760px;
     margin: 0 auto;
   }
   .top-bar {
@@ -80,7 +80,9 @@
     color: #047857;
     word-break: break-all;
   }
-  table { font-size: 0.9rem; }
+  .select-row { display: flex; gap: 0.5rem; }
+  .select-row select { flex: 1; }
+  table { font-size: 0.85rem; }
 </style>
 </head>
 <body>
@@ -111,7 +113,10 @@
 <div id="controlScreen">
   <div class="top-bar">
     <h4 class="fw-bold mb-0">🎛️ Panel Kawalan</h4>
-    <button class="btn btn-outline-danger" id="logoutBtn">Log Keluar</button>
+    <div class="d-flex gap-2">
+      <a href="import.html" class="btn btn-outline-secondary btn-sm">📥 Demo: Import Peserta</a>
+      <button class="btn btn-outline-danger btn-sm" id="logoutBtn">Log Keluar</button>
+    </div>
   </div>
 
   <div class="stage-link-box mb-3">
@@ -120,12 +125,18 @@
   </div>
 
   <div class="setup-card">
-    <label class="form-label fw-semibold">Nama Cabutan</label>
-    <input type="text" class="form-control mb-2" id="drawName" placeholder="cth: Cabutan Ogos 2026">
-    <span class="eligible-badge" id="eligibleBadge">Memuatkan...</span>
+    <label class="form-label fw-semibold">Sesi</label>
+    <div class="select-row">
+      <select class="form-select" id="drawSelect"><option value="">-- Pilih Sesi --</option></select>
+      <button class="btn btn-outline-primary" id="newDrawBtn">+ Sesi Baharu</button>
+    </div>
+    <div class="form-text">cth: "Sesi Pagi - Hari 1", "Sesi Malam - Hari 2"</div>
   </div>
 
-  <div class="status-card">
+  <div class="status-card" id="drawCard" style="display:none;">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <span class="eligible-badge" id="eligibleBadge">Memuatkan...</span>
+    </div>
     <label class="form-label fw-semibold">Nama Hadiah</label>
     <input type="text" class="form-control mb-3" id="prizeName" placeholder="cth: Voucher RM100">
     <div class="d-grid">
@@ -137,12 +148,18 @@
     </div>
   </div>
 
-  <div class="winners-card">
-    <h6 class="fw-bold mb-3">Senarai Pemenang</h6>
+  <div class="winners-card" id="winnersCard" style="display:none;">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h6 class="fw-bold mb-0">Senarai Pemenang</h6>
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" id="showAllDraws">
+        <label class="form-check-label small" for="showAllDraws">Papar semua sesi</label>
+      </div>
+    </div>
     <table class="table table-sm">
-      <thead><tr><th>#</th><th>Nama</th><th>Hadiah</th><th>Masa</th></tr></thead>
+      <thead><tr><th>#</th><th>Nama</th><th>Hadiah</th><th>Sesi</th><th>Masa</th><th>Operator</th></tr></thead>
       <tbody id="winnersBody">
-        <tr><td colspan="4" class="text-center text-muted py-3">Tiada pemenang lagi.</td></tr>
+        <tr><td colspan="6" class="text-center text-muted py-3">Tiada pemenang lagi.</td></tr>
       </tbody>
     </table>
   </div>
@@ -163,7 +180,11 @@
   const loginBtn = document.getElementById('loginBtn')
   const logoutBtn = document.getElementById('logoutBtn')
 
-  const drawNameInput = document.getElementById('drawName')
+  const drawSelect = document.getElementById('drawSelect')
+  const newDrawBtn = document.getElementById('newDrawBtn')
+
+  const drawCard = document.getElementById('drawCard')
+  const winnersCard = document.getElementById('winnersCard')
   const eligibleBadge = document.getElementById('eligibleBadge')
   const prizeNameInput = document.getElementById('prizeName')
   const drawBtn = document.getElementById('drawBtn')
@@ -172,19 +193,20 @@
   const lastWinnerMykad = document.getElementById('lastWinnerMykad')
   const winnersBody = document.getElementById('winnersBody')
   const stageLinkText = document.getElementById('stageLinkText')
+  const showAllDraws = document.getElementById('showAllDraws')
 
+  let currentUser = null
   let currentDrawId = null
   let eligibleParticipants = []
   let isSpinning = false
 
-  // Show the stage.html link relative to this page's own URL
   stageLinkText.textContent = new URL('stage.html', window.location.href).href
 
   function showControl() {
     loginScreen.style.display = 'none'
     controlScreen.style.display = 'block'
     stageChannel.subscribe()
-    initDraw()
+    loadDraws()
   }
   function showLogin() {
     loginScreen.style.display = 'flex'
@@ -192,7 +214,7 @@
   }
 
   supabase.auth.getSession().then(({ data: { session } }) => {
-    if (session) showControl()
+    if (session) { currentUser = session.user; showControl() }
   })
 
   loginForm.addEventListener('submit', async (e) => {
@@ -201,13 +223,14 @@
     const password = document.getElementById('loginPassword').value
     loginBtn.disabled = true
     loginBtn.textContent = 'Menyemak...'
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     loginBtn.disabled = false
     loginBtn.textContent = 'Log Masuk'
     if (error) {
       alert('Emel atau kata laluan salah.')
       return
     }
+    currentUser = data.user
     showControl()
   })
 
@@ -216,33 +239,58 @@
     showLogin()
   })
 
-  async function initDraw() {
-    eligibleBadge.textContent = 'Memuatkan...'
-    const todayName = drawNameInput.value.trim() || `Cabutan ${new Date().toLocaleDateString('ms-MY')}`
-    drawNameInput.value = todayName
+  // ---------------- Sesi (jadual "draws" sedia ada) ----------------
+  async function loadDraws(selectId = null) {
+    const { data, error } = await supabase.from('draws')
+      .select('*').order('draw_date', { ascending: false }).order('id', { ascending: false })
+    if (error) { console.error(error); return }
+    drawSelect.innerHTML = '<option value="">-- Pilih Sesi --</option>' +
+      data.map(d => `<option value="${d.id}">${d.name}${d.draw_date ? ' (' + new Date(d.draw_date).toLocaleDateString('ms-MY') + ')' : ''}</option>`).join('')
+    if (selectId) drawSelect.value = selectId
+    drawSelect.dispatchEvent(new Event('change'))
+  }
 
-    let { data: existingDraws } = await supabase
-      .from('draws').select('*').eq('name', todayName).limit(1)
+  newDrawBtn.addEventListener('click', async () => {
+    const name = prompt('Nama sesi baharu (cth: Sesi Pagi - Hari 1):')
+    if (!name || !name.trim()) return
+    const { data, error } = await supabase.from('draws')
+      .insert([{ name: name.trim(), draw_date: new Date().toISOString(), status: 'active' }]).select()
+    if (error) { alert('Ralat: ' + error.message); return }
+    await loadDraws(data[0].id)
+  })
 
-    if (existingDraws && existingDraws.length > 0) {
-      currentDrawId = existingDraws[0].id
+  drawSelect.addEventListener('change', async () => {
+    currentDrawId = drawSelect.value || null
+    if (currentDrawId) {
+      drawCard.style.display = 'block'
+      winnersCard.style.display = 'block'
+      await loadEligible()
+      await loadWinnersList()
     } else {
-      const { data: newDraw, error: drawError } = await supabase
-        .from('draws')
-        .insert([{ name: todayName, status: 'active', draw_date: new Date().toISOString() }])
-        .select()
-      if (drawError) {
-        eligibleBadge.textContent = 'Ralat memuat cabutan'
-        console.error(drawError)
-        return
-      }
-      currentDrawId = newDraw[0].id
+      drawCard.style.display = 'none'
+      winnersCard.style.display = 'none'
     }
+  })
 
-    await loadEligible()
-    await loadWinnersList()
+  showAllDraws.addEventListener('change', loadWinnersList)
 
-    // Tell the stage which candidate pool to cycle through
+  // ---------------- Kelayakan: peserta global YANG BELUM PERNAH menang ----------------
+  async function loadEligible() {
+    eligibleBadge.textContent = 'Memuatkan...'
+
+    const { data: pastWinners, error: pwErr } = await supabase.from('winners').select('participant_id')
+    if (pwErr) { console.error(pwErr); eligibleBadge.textContent = 'Ralat'; return }
+    const wonIds = new Set((pastWinners || []).map(w => w.participant_id))
+
+    const { data: allParticipants, error } = await supabase
+      .from('participants').select('id, full_name, mykad_number')
+
+    if (error) { console.error(error); eligibleBadge.textContent = 'Ralat'; return }
+
+    eligibleParticipants = (allParticipants || []).filter(p => !wonIds.has(p.id))
+    eligibleBadge.textContent = `${eligibleParticipants.length} peserta layak (${allParticipants.length} jumlah berdaftar)`
+    drawBtn.disabled = eligibleParticipants.length === 0
+
     stageChannel.send({
       type: 'broadcast',
       event: 'update-pool',
@@ -250,33 +298,19 @@
     })
   }
 
-  async function loadEligible() {
-    const { data: pastWinners } = await supabase.from('winners').select('participant_id')
-    const wonIds = (pastWinners || []).map(w => w.participant_id)
-
-    const { data: allParticipants, error } = await supabase
-      .from('participants').select('id, full_name, mykad_number')
-
-    if (error) {
-      eligibleBadge.textContent = 'Ralat memuat peserta'
-      console.error(error)
-      return
-    }
-
-    eligibleParticipants = allParticipants.filter(p => !wonIds.includes(p.id))
-    eligibleBadge.textContent = `${eligibleParticipants.length} peserta layak`
-    drawBtn.disabled = eligibleParticipants.length === 0
-  }
-
   async function loadWinnersList() {
-    const { data, error } = await supabase
+    let query = supabase
       .from('winners')
-      .select('id, prize_name, draw_at, participants(full_name)')
+      .select('id, prize_name, draw_at, operator_email, participants(full_name), draws(name)')
       .order('draw_at', { ascending: false })
-      .limit(20)
+      .limit(50)
+
+    if (!showAllDraws.checked) query = query.eq('draw_id', currentDrawId)
+
+    const { data, error } = await query
 
     if (error || !data || data.length === 0) {
-      winnersBody.innerHTML = `<tr><td colspan="4" class="text-center text-muted py-3">Tiada pemenang lagi.</td></tr>`
+      winnersBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">Tiada pemenang lagi.</td></tr>`
       return
     }
 
@@ -285,7 +319,9 @@
         <td>${i + 1}</td>
         <td>${w.participants ? w.participants.full_name : '-'}</td>
         <td>${w.prize_name || '-'}</td>
-        <td>${new Date(w.draw_at).toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit' })}</td>
+        <td>${w.draws ? w.draws.name : '-'}</td>
+        <td>${new Date(w.draw_at).toLocaleString('ms-MY', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}</td>
+        <td class="text-muted">${w.operator_email || '-'}</td>
       </tr>
     `).join('')
   }
@@ -296,6 +332,7 @@
 
   drawBtn.addEventListener('click', async () => {
     if (isSpinning) return
+    if (!currentDrawId) { alert('Sila pilih sesi dahulu.'); return }
     if (eligibleParticipants.length === 0) {
       alert('Tiada peserta layak untuk dicabut.')
       return
@@ -312,7 +349,6 @@
 
     const winner = randomFrom(eligibleParticipants)
 
-    // Tell the stage to start spinning, with the winner pre-decided
     stageChannel.send({
       type: 'broadcast',
       event: 'spin',
@@ -324,12 +360,17 @@
       }
     })
 
-    // Wait for the stage animation to roughly finish before saving + refreshing
     await new Promise(r => setTimeout(r, 2900))
 
     const { error } = await supabase
       .from('winners')
-      .insert([{ draw_id: currentDrawId, participant_id: winner.id, prize_name: prizeName }])
+      .insert([{
+        draw_id: currentDrawId,
+        participant_id: winner.id,
+        prize_name: prizeName,
+        operator_id: currentUser?.id || null,
+        operator_email: currentUser?.email || null
+      }])
 
     isSpinning = false
     drawBtn.disabled = false
@@ -346,12 +387,6 @@
 
     await loadEligible()
     await loadWinnersList()
-
-    stageChannel.send({
-      type: 'broadcast',
-      event: 'update-pool',
-      payload: { names: eligibleParticipants.map(p => p.full_name) }
-    })
   })
 </script>
 
