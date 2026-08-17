@@ -1,4 +1,3 @@
-/* control.html */
 <!DOCTYPE html>
 <html lang="ms">
 <head>
@@ -7,6 +6,7 @@
 <title>Cabutan Bertuah - Kawalan</title>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 
 <style>
   html, body {
@@ -81,9 +81,8 @@
     color: #047857;
     word-break: break-all;
   }
-  .select-row { display: flex; gap: 0.5rem; }
-  .select-row select { flex: 1; }
   table { font-size: 0.85rem; }
+  .window-hint { font-size: 0.78rem; color: #94a3b8; margin-top: 0.4rem; }
 </style>
 </head>
 <body>
@@ -126,15 +125,19 @@
   </div>
 
   <div class="setup-card">
-    <label class="form-label fw-semibold">Sesi</label>
-    <div class="select-row">
-      <select class="form-select" id="drawSelect"><option value="">-- Pilih Sesi --</option></select>
-      <button class="btn btn-outline-primary" id="newDrawBtn">+ Sesi Baharu</button>
+    <label class="form-label fw-semibold">Tempoh Pendaftaran Layak</label>
+    <div class="row g-2">
+      <div class="col-6">
+        <input type="text" class="form-control" id="eligibleFrom" placeholder="Dari (kosong = semua)">
+      </div>
+      <div class="col-6">
+        <input type="text" class="form-control" id="eligibleUntil" placeholder="Hingga">
+      </div>
     </div>
-    <div class="form-text">cth: "Sesi Pagi - Hari 1", "Sesi Malam - Hari 2"</div>
+    <div class="window-hint">Hanya peserta yang mendaftar dalam tempoh ini akan disertakan dalam cabutan.</div>
   </div>
 
-  <div class="status-card" id="drawCard" style="display:none;">
+  <div class="status-card" id="drawCard">
     <div class="d-flex justify-content-between align-items-center mb-3">
       <span class="eligible-badge" id="eligibleBadge">Memuatkan...</span>
     </div>
@@ -149,23 +152,18 @@
     </div>
   </div>
 
-  <div class="winners-card" id="winnersCard" style="display:none;">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <h6 class="fw-bold mb-0">Senarai Pemenang</h6>
-      <div class="form-check">
-        <input class="form-check-input" type="checkbox" id="showAllDraws">
-        <label class="form-check-label small" for="showAllDraws">Papar semua sesi</label>
-      </div>
-    </div>
+  <div class="winners-card">
+    <h6 class="fw-bold mb-3">Senarai Pemenang</h6>
     <table class="table table-sm">
-      <thead><tr><th>#</th><th>Nama</th><th>Hadiah</th><th>Sesi</th><th>Masa</th><th>Operator</th></tr></thead>
+      <thead><tr><th>#</th><th>Nama</th><th>Hadiah</th><th>Masa</th><th>Operator</th></tr></thead>
       <tbody id="winnersBody">
-        <tr><td colspan="6" class="text-center text-muted py-3">Tiada pemenang lagi.</td></tr>
+        <tr><td colspan="5" class="text-center text-muted py-3">Tiada pemenang lagi.</td></tr>
       </tbody>
     </table>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script type="module">
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
 
@@ -181,11 +179,7 @@
   const loginBtn = document.getElementById('loginBtn')
   const logoutBtn = document.getElementById('logoutBtn')
 
-  const drawSelect = document.getElementById('drawSelect')
-  const newDrawBtn = document.getElementById('newDrawBtn')
-
   const drawCard = document.getElementById('drawCard')
-  const winnersCard = document.getElementById('winnersCard')
   const eligibleBadge = document.getElementById('eligibleBadge')
   const prizeNameInput = document.getElementById('prizeName')
   const drawBtn = document.getElementById('drawBtn')
@@ -194,20 +188,43 @@
   const lastWinnerMykad = document.getElementById('lastWinnerMykad')
   const winnersBody = document.getElementById('winnersBody')
   const stageLinkText = document.getElementById('stageLinkText')
-  const showAllDraws = document.getElementById('showAllDraws')
 
   let currentUser = null
-  let currentDrawId = null
+  let currentDrawId = null   // auto-created draws row for the active date window
   let eligibleParticipants = []
   let isSpinning = false
 
   stageLinkText.textContent = new URL('stage.html', window.location.href).href
 
+  // ---------------- Flatpickr: registration eligibility window ----------------
+  const fpUntil = flatpickr('#eligibleUntil', {
+    enableTime: true,
+    dateFormat: 'Y-m-d H:i',
+    maxDate: 'today',
+    defaultDate: new Date(),
+    time_24hr: true,
+    onChange: onWindowChanged
+  })
+  const fpFrom = flatpickr('#eligibleFrom', {
+    enableTime: true,
+    dateFormat: 'Y-m-d H:i',
+    maxDate: 'today',
+    time_24hr: true,
+    onChange: onWindowChanged
+  })
+
+  function onWindowChanged() {
+    // A changed window means a different eligible pool, so it's a new session.
+    currentDrawId = null
+    loadEligible()
+  }
+
   function showControl() {
     loginScreen.style.display = 'none'
     controlScreen.style.display = 'block'
     stageChannel.subscribe()
-    loadDraws()
+    loadEligible()
+    loadWinnersList()
   }
   function showLogin() {
     loginScreen.style.display = 'flex'
@@ -240,56 +257,42 @@
     showLogin()
   })
 
-  // ---------------- Sesi (jadual "draws" sedia ada) ----------------
-  async function loadDraws(selectId = null) {
-    const { data, error } = await supabase.from('draws')
-      .select('*').order('draw_date', { ascending: false }).order('id', { ascending: false })
-    if (error) { console.error(error); return }
-    drawSelect.innerHTML = '<option value="">-- Pilih Sesi --</option>' +
-      data.map(d => `<option value="${d.id}">${d.name}${d.draw_date ? ' (' + new Date(d.draw_date).toLocaleDateString('ms-MY') + ')' : ''}</option>`).join('')
-    if (selectId) drawSelect.value = selectId
-    drawSelect.dispatchEvent(new Event('change'))
-  }
-
-  newDrawBtn.addEventListener('click', async () => {
-    const name = prompt('Nama sesi baharu (cth: Sesi Pagi - Hari 1):')
-    if (!name || !name.trim()) return
-    const { data, error } = await supabase.from('draws')
-      .insert([{ name: name.trim(), draw_date: new Date().toISOString(), status: 'active' }]).select()
-    if (error) { alert('Ralat: ' + error.message); return }
-    await loadDraws(data[0].id)
-  })
-
-  drawSelect.addEventListener('change', async () => {
-    currentDrawId = drawSelect.value || null
-    if (currentDrawId) {
-      drawCard.style.display = 'block'
-      winnersCard.style.display = 'block'
-      await loadEligible()
-      await loadWinnersList()
-    } else {
-      drawCard.style.display = 'none'
-      winnersCard.style.display = 'none'
-    }
-  })
-
-  showAllDraws.addEventListener('change', loadWinnersList)
-
-  // ---------------- Kelayakan: peserta global YANG BELUM PERNAH menang ----------------
+  // ---------------- Kelayakan: peserta dalam tempoh, belum pernah menang ----------------
+  // A person can register multiple times (mykad_number is no longer unique).
+  // We de-duplicate to one entry per mykad_number, and exclude anyone whose
+  // mykad_number already appears in winners (across ALL past sessions),
+  // so a repeat registration can never win twice.
   async function loadEligible() {
     eligibleBadge.textContent = 'Memuatkan...'
 
-    const { data: pastWinners, error: pwErr } = await supabase.from('winners').select('participant_id')
+    const { data: pastWinners, error: pwErr } = await supabase
+      .from('winners')
+      .select('participants(mykad_number)')
     if (pwErr) { console.error(pwErr); eligibleBadge.textContent = 'Ralat'; return }
-    const wonIds = new Set((pastWinners || []).map(w => w.participant_id))
+    const wonMykads = new Set(
+      (pastWinners || []).map(w => w.participants?.mykad_number).filter(Boolean)
+    )
 
-    const { data: allParticipants, error } = await supabase
-      .from('participants').select('id, full_name, mykad_number')
+    let query = supabase.from('participants').select('id, full_name, mykad_number, registered_at')
+    const fromVal = fpFrom.selectedDates[0]
+    const untilVal = fpUntil.selectedDates[0] || new Date()
+    if (fromVal) query = query.gte('registered_at', fromVal.toISOString())
+    query = query.lte('registered_at', untilVal.toISOString())
 
+    const { data: allParticipants, error } = await query
     if (error) { console.error(error); eligibleBadge.textContent = 'Ralat'; return }
 
-    eligibleParticipants = (allParticipants || []).filter(p => !wonIds.has(p.id))
-    eligibleBadge.textContent = `${eligibleParticipants.length} peserta layak (${allParticipants.length} jumlah berdaftar)`
+    const byMykad = new Map()
+    for (const p of (allParticipants || [])) {
+      if (wonMykads.has(p.mykad_number)) continue
+      const existing = byMykad.get(p.mykad_number)
+      if (!existing || new Date(p.registered_at) > new Date(existing.registered_at)) {
+        byMykad.set(p.mykad_number, p)
+      }
+    }
+    eligibleParticipants = Array.from(byMykad.values())
+
+    eligibleBadge.textContent = `${eligibleParticipants.length} peserta layak (${(allParticipants || []).length} pendaftaran dalam tempoh ini)`
     drawBtn.disabled = eligibleParticipants.length === 0
 
     stageChannel.send({
@@ -300,18 +303,14 @@
   }
 
   async function loadWinnersList() {
-    let query = supabase
+    const { data, error } = await supabase
       .from('winners')
-      .select('id, prize_name, draw_at, operator_email, participants(full_name), draws(name)')
+      .select('id, prize_name, draw_at, operator_email, participants(full_name)')
       .order('draw_at', { ascending: false })
       .limit(50)
 
-    if (!showAllDraws.checked) query = query.eq('draw_id', currentDrawId)
-
-    const { data, error } = await query
-
     if (error || !data || data.length === 0) {
-      winnersBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">Tiada pemenang lagi.</td></tr>`
+      winnersBody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-3">Tiada pemenang lagi.</td></tr>`
       return
     }
 
@@ -320,7 +319,6 @@
         <td>${i + 1}</td>
         <td>${w.participants ? w.participants.full_name : '-'}</td>
         <td>${w.prize_name || '-'}</td>
-        <td>${w.draws ? w.draws.name : '-'}</td>
         <td>${new Date(w.draw_at).toLocaleString('ms-MY', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}</td>
         <td class="text-muted">${w.operator_email || '-'}</td>
       </tr>
@@ -331,9 +329,28 @@
     return arr[Math.floor(Math.random() * arr.length)]
   }
 
+  // Lazily create (once per window) the "draws" session row this draw belongs to.
+  async function ensureDrawSession() {
+    if (currentDrawId) return currentDrawId
+
+    const fromVal = fpFrom.selectedDates[0]
+    const untilVal = fpUntil.selectedDates[0] || new Date()
+    const label = fromVal
+      ? `${fromVal.toLocaleString('ms-MY')} - ${untilVal.toLocaleString('ms-MY')}`
+      : `Sehingga ${untilVal.toLocaleString('ms-MY')}`
+
+    const { data, error } = await supabase
+      .from('draws')
+      .insert([{ name: label, draw_date: new Date().toISOString(), status: 'active' }])
+      .select()
+
+    if (error) { throw error }
+    currentDrawId = data[0].id
+    return currentDrawId
+  }
+
   drawBtn.addEventListener('click', async () => {
     if (isSpinning) return
-    if (!currentDrawId) { alert('Sila pilih sesi dahulu.'); return }
     if (eligibleParticipants.length === 0) {
       alert('Tiada peserta layak untuk dicabut.')
       return
@@ -363,6 +380,16 @@
 
     await new Promise(r => setTimeout(r, 2900))
 
+    let drawId
+    try {
+      drawId = await ensureDrawSession()
+    } catch (e) {
+      isSpinning = false
+      drawBtn.disabled = false
+      alert('Ralat mencipta sesi: ' + e.message)
+      return
+    }
+
     // Guard against a stale local cache: confirm this participant still
     // exists before saving (they may have been deleted elsewhere, e.g.
     // via the demo-data clear button in import.html, since we last loaded).
@@ -371,7 +398,7 @@
       .select('id')
       .eq('id', winner.id)
       .maybeSingle()
-    
+
     if (checkErr || !stillExists) {
       isSpinning = false
       drawBtn.disabled = false
@@ -379,20 +406,20 @@
       await loadEligible()
       return
     }
-    
+
     const { error } = await supabase
       .from('winners')
       .insert([{
-        draw_id: currentDrawId,
+        draw_id: drawId,
         participant_id: winner.id,
         prize_name: prizeName,
         operator_id: currentUser?.id || null,
         operator_email: currentUser?.email || null
       }])
-    
+
     isSpinning = false
     drawBtn.disabled = false
-    
+
     if (error) {
       alert('Ralat menyimpan pemenang: ' + error.message)
       await loadEligible()
