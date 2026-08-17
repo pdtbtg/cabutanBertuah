@@ -363,6 +363,23 @@
 
     await new Promise(r => setTimeout(r, 2900))
 
+    // Guard against a stale local cache: confirm this participant still
+    // exists before saving (they may have been deleted elsewhere, e.g.
+    // via the demo-data clear button in import.html, since we last loaded).
+    const { data: stillExists, error: checkErr } = await supabase
+      .from('participants')
+      .select('id')
+      .eq('id', winner.id)
+      .maybeSingle()
+    
+    if (checkErr || !stillExists) {
+      isSpinning = false
+      drawBtn.disabled = false
+      alert('Peserta yang dipilih tidak lagi wujud (mungkin telah dipadam). Menyegarkan senarai — sila cabut semula.')
+      await loadEligible()
+      return
+    }
+    
     const { error } = await supabase
       .from('winners')
       .insert([{
@@ -372,12 +389,13 @@
         operator_id: currentUser?.id || null,
         operator_email: currentUser?.email || null
       }])
-
+    
     isSpinning = false
     drawBtn.disabled = false
-
+    
     if (error) {
       alert('Ralat menyimpan pemenang: ' + error.message)
+      await loadEligible()
       return
     }
 
