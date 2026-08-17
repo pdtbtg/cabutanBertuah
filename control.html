@@ -7,6 +7,7 @@
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <style>
   html, body {
@@ -83,6 +84,79 @@
   }
   table { font-size: 0.85rem; }
   .window-hint { font-size: 0.78rem; color: #94a3b8; margin-top: 0.4rem; }
+
+  /* ---------------- Big knight-rider-style draw button ---------------- */
+  .cabut-wrap {
+    position: relative;
+    border-radius: 26px;
+    padding: 10px;
+  }
+  .cabut-wrap.is-drawing::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 26px;
+    padding: 5px;
+    background: conic-gradient(from 0deg,
+      transparent 0%, transparent 78%,
+      #fee2e2 82%, #ef4444 88%, #fbbf24 92%,
+      #ef4444 96%, transparent 100%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation: cabutChase 1s linear infinite;
+    filter: drop-shadow(0 0 8px #ef4444) drop-shadow(0 0 4px #fbbf24);
+  }
+  @keyframes cabutChase {
+    to { transform: rotate(360deg); }
+  }
+  #drawBtn {
+    width: 100%;
+    font-size: clamp(1.6rem, 6vw, 2.75rem);
+    font-weight: 800;
+    padding: 6dvh 3vw;
+    border-radius: 20px;
+    letter-spacing: 0.01em;
+    box-shadow: 0 10px 28px rgba(99,102,241,0.35);
+    transition: transform 0.08s ease;
+  }
+  #drawBtn:active { transform: scale(0.97); }
+  #drawBtn:disabled { opacity: 0.55; }
+
+  /* ---------------- VVIP mode: strip everything but the button ---------------- */
+  body.vvip-mode #controlScreen {
+    max-width: 100%;
+    padding: 0;
+  }
+  body.vvip-mode .top-bar,
+  body.vvip-mode .stage-link-box,
+  body.vvip-mode .setup-card,
+  body.vvip-mode .winners-card,
+  body.vvip-mode #eligibleRow,
+  body.vvip-mode #setupFields {
+    display: none !important;
+  }
+  body.vvip-mode .status-card#drawCard {
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border-radius: 0;
+    box-shadow: none;
+    margin: 0;
+    padding: 6dvh 6vw;
+  }
+  body.vvip-mode #drawCard > * { width: 100%; max-width: 560px; }
+  #vvipPrizeDisplay { display: none; }
+  .vvip-exit-btn {
+    position: fixed;
+    top: 14px;
+    right: 14px;
+    z-index: 50;
+    opacity: 0.4;
+  }
+  .vvip-exit-btn:hover { opacity: 1; }
 </style>
 </head>
 <body>
@@ -111,9 +185,11 @@
 </div>
 
 <div id="controlScreen">
+  <button class="btn btn-sm btn-light vvip-exit-btn" id="vvipExitBtn" style="display:none;">✕ Keluar Mod VVIP</button>
   <div class="top-bar">
     <h4 class="fw-bold mb-0">🎛️ Panel Kawalan</h4>
     <div class="d-flex gap-2">
+      <button class="btn btn-outline-primary btn-sm" id="vvipToggleBtn">🙌 Mod VVIP</button>
       <a href="import.html" class="btn btn-outline-secondary btn-sm">📥 Demo: Import Peserta</a>
       <button class="btn btn-outline-danger btn-sm" id="logoutBtn">Log Keluar</button>
     </div>
@@ -125,26 +201,27 @@
   </div>
 
   <div class="setup-card">
-    <label class="form-label fw-semibold">Tempoh Pendaftaran Layak</label>
-    <div class="row g-2">
-      <div class="col-6">
-        <input type="text" class="form-control" id="eligibleFrom" placeholder="Dari (kosong = semua)">
-      </div>
-      <div class="col-6">
-        <input type="text" class="form-control" id="eligibleUntil" placeholder="Hingga">
-      </div>
-    </div>
-    <div class="window-hint">Hanya peserta yang mendaftar dalam tempoh ini akan disertakan dalam cabutan.</div>
+    <label class="form-label fw-semibold">Peserta Layak Mendaftar Dari</label>
+    <input type="text" class="form-control" id="eligibleFrom" placeholder="Dari (kosong = semua peserta)">
+    <div class="window-hint">Hanya peserta yang mendaftar dari masa ini sehingga sekarang akan disertakan dalam cabutan.</div>
   </div>
 
   <div class="status-card" id="drawCard">
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-3" id="eligibleRow">
       <span class="eligible-badge" id="eligibleBadge">Memuatkan...</span>
     </div>
-    <label class="form-label fw-semibold">Nama Hadiah</label>
-    <input type="text" class="form-control mb-3" id="prizeName" placeholder="cth: Voucher RM100">
-    <div class="d-grid">
-      <button class="btn btn-primary btn-lg" id="drawBtn">🎉 Cabut Sekarang</button>
+    <div id="setupFields">
+      <label class="form-label fw-semibold">Nama Hadiah <span class="text-muted fw-normal">(pilihan)</span></label>
+      <input type="text" class="form-control mb-3" id="prizeName" placeholder="cth: Voucher RM100 (kosongkan jika tiada)">
+    </div>
+    <div id="vvipPrizeDisplay" class="text-center mb-3">
+      <div class="text-muted small text-uppercase">Hadiah</div>
+      <div class="fw-bold fs-3" id="vvipPrizeText"></div>
+    </div>
+    <div class="cabut-wrap" id="cabutWrap">
+      <div class="d-grid">
+        <button class="btn btn-primary btn-lg" id="drawBtn">🎉 Cabut Sekarang</button>
+      </div>
     </div>
     <div id="lastWinnerBox" class="mt-3 text-center" style="display:none;">
       <div class="fw-bold fs-5 text-primary" id="lastWinnerName"></div>
@@ -183,11 +260,15 @@
   const eligibleBadge = document.getElementById('eligibleBadge')
   const prizeNameInput = document.getElementById('prizeName')
   const drawBtn = document.getElementById('drawBtn')
+  const cabutWrap = document.getElementById('cabutWrap')
   const lastWinnerBox = document.getElementById('lastWinnerBox')
   const lastWinnerName = document.getElementById('lastWinnerName')
   const lastWinnerMykad = document.getElementById('lastWinnerMykad')
   const winnersBody = document.getElementById('winnersBody')
   const stageLinkText = document.getElementById('stageLinkText')
+  const vvipToggleBtn = document.getElementById('vvipToggleBtn')
+  const vvipExitBtn = document.getElementById('vvipExitBtn')
+  const vvipPrizeText = document.getElementById('vvipPrizeText')
 
   let currentUser = null
   let currentDrawId = null   // auto-created draws row for the active date window
@@ -196,15 +277,36 @@
 
   stageLinkText.textContent = new URL('stage.html', window.location.href).href
 
+  // ---------------- Format tarikh Bahasa Melayu, cth: 17 Ogos 2026 4:00 PM ----------------
+  const MS_MONTHS = ['Januari', 'Februari', 'Mac', 'April', 'Mei', 'Jun', 'Julai', 'Ogos', 'September', 'Oktober', 'November', 'Disember']
+  function formatDateMY(value) {
+    const d = new Date(value)
+    const day = d.getDate()
+    const month = MS_MONTHS[d.getMonth()]
+    const year = d.getFullYear()
+    let hours = d.getHours()
+    const minutes = String(d.getMinutes()).padStart(2, '0')
+    const ampm = hours >= 12 ? 'PM' : 'AM'
+    hours = hours % 12
+    if (hours === 0) hours = 12
+    return `${day} ${month} ${year} ${hours}:${minutes} ${ampm}`
+  }
+
+  // ---------------- Mod VVIP: sembunyikan semua kecuali butang cabutan ----------------
+  function enterVvipMode() {
+    vvipPrizeText.textContent = prizeNameInput.value.trim() || 'Hadiah Misteri'
+    document.body.classList.add('vvip-mode')
+    vvipExitBtn.style.display = 'inline-block'
+  }
+  function exitVvipMode() {
+    document.body.classList.remove('vvip-mode')
+    vvipExitBtn.style.display = 'none'
+  }
+  vvipToggleBtn.addEventListener('click', enterVvipMode)
+  vvipExitBtn.addEventListener('click', exitVvipMode)
+
   // ---------------- Flatpickr: registration eligibility window ----------------
-  const fpUntil = flatpickr('#eligibleUntil', {
-    enableTime: true,
-    dateFormat: 'Y-m-d H:i',
-    maxDate: 'today',
-    defaultDate: new Date(),
-    time_24hr: true,
-    onChange: onWindowChanged
-  })
+  // "Until" is always the current moment when a draw/refresh happens — no picker needed.
   const fpFrom = flatpickr('#eligibleFrom', {
     enableTime: true,
     dateFormat: 'Y-m-d H:i',
@@ -245,7 +347,7 @@
     loginBtn.disabled = false
     loginBtn.textContent = 'Log Masuk'
     if (error) {
-      alert('Emel atau kata laluan salah.')
+      Swal.fire({ icon: 'error', title: 'Log masuk gagal', text: 'Emel atau kata laluan salah.' })
       return
     }
     currentUser = data.user
@@ -275,7 +377,7 @@
 
     let query = supabase.from('participants').select('id, full_name, mykad_number, registered_at')
     const fromVal = fpFrom.selectedDates[0]
-    const untilVal = fpUntil.selectedDates[0] || new Date()
+    const untilVal = new Date()
     if (fromVal) query = query.gte('registered_at', fromVal.toISOString())
     query = query.lte('registered_at', untilVal.toISOString())
 
@@ -319,7 +421,7 @@
         <td>${i + 1}</td>
         <td>${w.participants ? w.participants.full_name : '-'}</td>
         <td>${w.prize_name || '-'}</td>
-        <td>${new Date(w.draw_at).toLocaleString('ms-MY', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}</td>
+        <td>${formatDateMY(w.draw_at)}</td>
         <td class="text-muted">${w.operator_email || '-'}</td>
       </tr>
     `).join('')
@@ -334,10 +436,10 @@
     if (currentDrawId) return currentDrawId
 
     const fromVal = fpFrom.selectedDates[0]
-    const untilVal = fpUntil.selectedDates[0] || new Date()
+    const untilVal = new Date()
     const label = fromVal
-      ? `${fromVal.toLocaleString('ms-MY')} - ${untilVal.toLocaleString('ms-MY')}`
-      : `Sehingga ${untilVal.toLocaleString('ms-MY')}`
+      ? `${formatDateMY(fromVal)} - ${formatDateMY(untilVal)}`
+      : `Sehingga ${formatDateMY(untilVal)}`
 
     const { data, error } = await supabase
       .from('draws')
@@ -349,20 +451,24 @@
     return currentDrawId
   }
 
+  function stopSpinFX() {
+    isSpinning = false
+    drawBtn.disabled = false
+    cabutWrap.classList.remove('is-drawing')
+  }
+
   drawBtn.addEventListener('click', async () => {
     if (isSpinning) return
     if (eligibleParticipants.length === 0) {
-      alert('Tiada peserta layak untuk dicabut.')
+      Swal.fire({ icon: 'warning', title: 'Tiada peserta layak', text: 'Tiada peserta layak untuk dicabut.' })
       return
     }
-    const prizeName = prizeNameInput.value.trim()
-    if (!prizeName) {
-      alert('Sila isi nama hadiah.')
-      return
-    }
+    // Prize name is optional — falls back to a generic label if left blank.
+    const prizeName = prizeNameInput.value.trim() || 'Hadiah Misteri'
 
     isSpinning = true
     drawBtn.disabled = true
+    cabutWrap.classList.add('is-drawing')
     lastWinnerBox.style.display = 'none'
 
     const winner = randomFrom(eligibleParticipants)
@@ -384,9 +490,8 @@
     try {
       drawId = await ensureDrawSession()
     } catch (e) {
-      isSpinning = false
-      drawBtn.disabled = false
-      alert('Ralat mencipta sesi: ' + e.message)
+      stopSpinFX()
+      Swal.fire({ icon: 'error', title: 'Ralat', text: 'Ralat mencipta sesi: ' + e.message })
       return
     }
 
@@ -400,9 +505,12 @@
       .maybeSingle()
 
     if (checkErr || !stillExists) {
-      isSpinning = false
-      drawBtn.disabled = false
-      alert('Peserta yang dipilih tidak lagi wujud (mungkin telah dipadam). Menyegarkan senarai — sila cabut semula.')
+      stopSpinFX()
+      Swal.fire({
+        icon: 'info',
+        title: 'Senarai disegarkan',
+        text: 'Peserta yang dipilih tidak lagi wujud (mungkin telah dipadam). Sila cabut semula.'
+      })
       await loadEligible()
       return
     }
@@ -417,11 +525,10 @@
         operator_email: currentUser?.email || null
       }])
 
-    isSpinning = false
-    drawBtn.disabled = false
+    stopSpinFX()
 
     if (error) {
-      alert('Ralat menyimpan pemenang: ' + error.message)
+      Swal.fire({ icon: 'error', title: 'Ralat', text: 'Ralat menyimpan pemenang: ' + error.message })
       await loadEligible()
       return
     }
@@ -430,6 +537,7 @@
     lastWinnerMykad.textContent = winner.mykad_number
     lastWinnerBox.style.display = 'block'
     prizeNameInput.value = ''
+    vvipPrizeText.textContent = 'Hadiah Misteri'
 
     await loadEligible()
     await loadWinnersList()
