@@ -210,9 +210,29 @@
     }
 
     submitBtn.disabled = true
+    submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Menyemak...`
+
+    // Check if this MyKad has already registered
+    const { data: alreadyRegistered, error: checkError } = await supabase
+      .rpc('check_mykad_registered', { check_mykad: mykad_number })
+
+    if (checkError) {
+      submitBtn.disabled = false
+      submitBtn.textContent = 'Daftar'
+      Swal.fire('Ralat', 'Gagal menyemak status pendaftaran: ' + checkError.message, 'error')
+      return
+    }
+
+    if (alreadyRegistered) {
+      submitBtn.disabled = false
+      submitBtn.textContent = 'Daftar'
+      Swal.fire('Ralat', 'No. MyKad ini sudah didaftarkan.', 'error')
+      return
+    }
+
     submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Menghantar...`
 
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('participants')
       .insert([{
         full_name,
@@ -220,7 +240,6 @@
         phone_number: phone_number || null,
         email: email || null
       }])
-      .select()
 
     submitBtn.disabled = false
     submitBtn.textContent = 'Daftar'
