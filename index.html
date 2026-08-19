@@ -120,13 +120,34 @@
       display: none; /* shown instead in the side panel on desktop */
     }
   }
+  .program-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem 0.6rem;
+  text-align: center;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  font-size: clamp(0.9rem, 2.4vw, 1.35rem);
+  color: #1e1b4b;
+  padding: 2.5dvh 4vw 1.5dvh;
+}
+.program-title img {
+  height: clamp(26px, 6vw, 42px);
+  width: auto;
+  object-fit: contain;
+}
 </style>
 </head>
 <body>
 
-  <img src="./assets/SemarakJalurGemilang.png" alt="Logo Pahang" style="height: 40px;">
-
 <div class="auth-shell">
+  <div class="program-title">
+    <span>PROGRAM</span>
+    <img src="./assets/SemarakJalurGemilang.png" alt="Semarak Jalur Gemilang">
+    <span>DAERAH BENTONG 2026</span>
+  </div>
 
   <div class="brand-panel">
     <div class="emoji">🎡</div>
