@@ -142,56 +142,59 @@
 </head>
 <body>
 
-<div class="auth-shell">
-  <div class="program-title">
-    <span>PROGRAM</span>
-    <img src="./assets/SemarakJalurGemilang.png" alt="Semarak Jalur Gemilang">
-    <span>DAERAH BENTONG 2026</span>
-  </div>
-
-  <div class="brand-panel">
-    <div class="emoji">🎡</div>
-    <h2>Cabutan Bertuah</h2>
-    <p>Daftar sekarang untuk peluang memenangi hadiah menarik. Isi maklumat anda di sebelah untuk menyertai cabutan bertuah kami.</p>
-  </div>
-
-  <div class="form-panel">
-  <div class="card-body">
-    <div class="text-center mb-4">
-      <div class="brand-title">🎡 Cabutan Bertuah</div>
-      <div class="brand-subtitle">Isi maklumat di bawah untuk mendaftar</div>
+  <div class="page-wrap">
+    <div class="program-title">
+      <span>PROGRAM</span>
+      <img src="./assets/SemarakJalurGemilang.png" alt="Semarak Jalur Gemilang">
+      <span>DAERAH BENTONG 2026</span>
     </div>
-
-    <form id="registerForm" novalidate>
-
-      <div class="form-floating">
-        <input type="text" class="form-control" id="full_name" placeholder="Nama Penuh" required>
-        <label for="full_name">Nama Penuh</label>
+  
+    <div class="auth-shell">
+    
+      <div class="brand-panel">
+        <div class="emoji">🎡</div>
+        <h2>Cabutan Bertuah</h2>
+        <p>Daftar sekarang untuk peluang memenangi hadiah menarik. Isi maklumat anda di sebelah untuk menyertai cabutan bertuah kami.</p>
       </div>
-
-      <div class="form-floating">
-        <input type="text" class="form-control" id="mykad_number" placeholder="No. MyKad" maxlength="12" pattern="\d{12}" required>
-        <label for="mykad_number">No. MyKad (12 digit)</label>
+    
+      <div class="form-panel">
+        <div class="card-body">
+          <div class="text-center mb-4">
+            <div class="brand-title">🎡 Cabutan Bertuah</div>
+            <div class="brand-subtitle">Isi maklumat di bawah untuk mendaftar</div>
+          </div>
+      
+          <form id="registerForm" novalidate>
+      
+            <div class="form-floating">
+              <input type="text" class="form-control" id="full_name" placeholder="Nama Penuh" required>
+              <label for="full_name">Nama Penuh</label>
+            </div>
+      
+            <div class="form-floating">
+              <input type="text" class="form-control" id="mykad_number" placeholder="No. MyKad" maxlength="12" pattern="\d{12}" required>
+              <label for="mykad_number">No. MyKad (12 digit)</label>
+            </div>
+      
+            <div class="form-floating">
+              <input type="text" class="form-control" id="phone_number" placeholder="No. Telefon">
+              <label for="phone_number">No. Telefon</label>
+            </div>
+      
+            <div class="form-floating">
+              <input type="email" class="form-control" id="email" placeholder="Emel">
+              <label for="email">Emel (pilihan)</label>
+            </div>
+      
+            <div class="d-grid mt-3">
+              <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">Daftar</button>
+            </div>
+      
+          </form>
+        </div>
       </div>
-
-      <div class="form-floating">
-        <input type="text" class="form-control" id="phone_number" placeholder="No. Telefon">
-        <label for="phone_number">No. Telefon</label>
-      </div>
-
-      <div class="form-floating">
-        <input type="email" class="form-control" id="email" placeholder="Emel">
-        <label for="email">Emel (pilihan)</label>
-      </div>
-
-      <div class="d-grid mt-3">
-        <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">Daftar</button>
-      </div>
-
-    </form>
-  </div>
-  </div>
-</div>
+    </div>
+  </div>  
 
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
