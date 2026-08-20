@@ -13,6 +13,7 @@
   :root {
     --jg-blue: #010066;
     --jg-blue-light: #1a2a8f;
+    --jg-blue-dark: #000044;
     --jg-red: #cc0001;
     --jg-red-dark: #a30001;
     --jg-gold: #ffcc00;
@@ -113,20 +114,20 @@
     box-shadow: 0 0 0 0.2rem rgba(1, 0, 102, 0.15);
   }
   .btn-primary {
-    background-color: var(--jg-red);
-    border-color: var(--jg-red);
+    background-color: var(--jg-blue);
+    border-color: var(--jg-blue);
     padding: 1.2dvh 0;
     font-weight: 700;
     letter-spacing: 0.02em;
     border-radius: 10px;
   }
   .btn-primary:hover {
-    background-color: var(--jg-red-dark);
-    border-color: var(--jg-red-dark);
+    background-color: var(--jg-blue-dark);
+    border-color: var(--jg-blue-dark);
   }
   .btn-primary:disabled {
-    background-color: #e88a8a;
-    border-color: #e88a8a;
+    background-color: #8f93c2;
+    border-color: #8f93c2;
   }
   .form-floating {
     margin-bottom: 1.6dvh;
@@ -223,7 +224,7 @@
             <form id="registerForm" novalidate>
 
               <div class="form-floating">
-                <input type="text" class="form-control" id="full_name" placeholder="Nama Penuh" required>
+                <input type="text" class="form-control" id="full_name" placeholder="Nama Penuh" autofocus required>
                 <label for="full_name">Nama Penuh</label>
               </div>
 
@@ -260,7 +261,11 @@
   const form = document.getElementById('registerForm')
   const submitBtn = document.getElementById('submitBtn')
   const fullNameInput = document.getElementById('full_name')
-  
+
+  // Put focus on the name field as soon as the page is ready, so the
+  // participant can start typing immediately without tapping the field first.
+  fullNameInput.focus()
+
   fullNameInput.addEventListener('input', () => {
     const cursorPos = fullNameInput.selectionStart
     fullNameInput.value = fullNameInput.value.toUpperCase()
@@ -333,9 +338,10 @@
       title: 'Berjaya!',
       text: 'Pendaftaran anda telah diterima. Terima kasih!',
       icon: 'success',
-      confirmButtonColor: '#cc0001'
+      confirmButtonColor: '#010066'
     })
     form.reset()
+    fullNameInput.focus()
   })
 </script>
 
