@@ -209,14 +209,14 @@
     idleView.style.display = 'none'
     spinView.style.display = 'block'
     winnerView.style.display = 'none'
-    prizeLabel.textContent = prizeName
+    prizeLabel.textContent = prizeName || ''
   }
 
   function showWinner(name, prizeName) {
     idleView.style.display = 'none'
     spinView.style.display = 'none'
     winnerView.style.display = 'block'
-    if (winnerPrizeLabel) winnerPrizeLabel.textContent = prizeName
+    if (winnerPrizeLabel) winnerPrizeLabel.textContent = prizeName || ''
     winnerNameDisplay.textContent = name
   }
 
