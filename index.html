@@ -257,6 +257,13 @@
 
   const form = document.getElementById('registerForm')
   const submitBtn = document.getElementById('submitBtn')
+  const fullNameInput = document.getElementById('full_name')
+  
+  fullNameInput.addEventListener('input', () => {
+    const cursorPos = fullNameInput.selectionStart
+    fullNameInput.value = fullNameInput.value.toUpperCase()
+    fullNameInput.setSelectionRange(cursorPos, cursorPos)
+  })
 
   function isValidMyKad(value) {
     return /^\d{12}$/.test(value)
