@@ -137,6 +137,13 @@
     font-size: 6dvh;
     margin-bottom: 1dvh;
   }
+  .winner-mykad {
+    color: rgba(255,255,255,0.7);
+    font-size: 3.2dvh;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    margin-top: 1dvh;
+  }
   .confetti-burst {
     animation: pop 0.5s ease;
   }
@@ -169,9 +176,10 @@
 
   <div id="winnerView" style="display:none;">
     <div class="winner-frame">
-      <div class="prize-label" id="winnerPrizeLabel"></div>
+      <!-- <div class="prize-label" id="winnerPrizeLabel"></div> -->
       <div class="winner-badge">🏆</div>
       <div class="name-display confetti-burst" id="winnerNameDisplay"></div>
+      <div class="winner-mykad" id="winnerMykadDisplay"></div>
     </div>
   </div>
 </div>
@@ -192,11 +200,21 @@
   const prizeLabel = document.getElementById('prizeLabel')
   const winnerPrizeLabel = document.getElementById('winnerPrizeLabel')
   const winnerNameDisplay = document.getElementById('winnerNameDisplay')
+  const winnerMykadDisplay = document.getElementById('winnerMykadDisplay')
 
   let candidatePool = []
 
   function randomFrom(arr) {
     return arr[Math.floor(Math.random() * arr.length)]
+  }
+
+  // Mask a MyKad number, showing only the last 4 digits, e.g. (********5481)
+  function maskMykad(mykad) {
+    if (!mykad) return ''
+    const digits = String(mykad).replace(/[^0-9]/g, '')
+    if (digits.length <= 4) return `(${digits})`
+    const last4 = digits.slice(-4)
+    return `(${'*'.repeat(digits.length - 4)}${last4})`
   }
 
   function showIdle() {
@@ -212,15 +230,16 @@
     prizeLabel.textContent = prizeName || ''
   }
 
-  function showWinner(name, prizeName) {
+  function showWinner(name, prizeName, winnerMykad) {
     idleView.style.display = 'none'
     spinView.style.display = 'none'
     winnerView.style.display = 'block'
     if (winnerPrizeLabel) winnerPrizeLabel.textContent = prizeName || ''
     winnerNameDisplay.textContent = name
+    winnerMykadDisplay.textContent = maskMykad(winnerMykad)
   }
 
-  function runSpinAnimation({ names, winnerName, prizeName, duration }) {
+  function runSpinAnimation({ names, winnerName, winnerMykad, prizeName, duration }) {
     const pool = names && names.length > 0 ? names : candidatePool
     showSpin(prizeName)
 
@@ -229,7 +248,7 @@
 
     function tick() {
       if (elapsed >= duration) {
-        showWinner(winnerName, prizeName)
+        showWinner(winnerName, prizeName, winnerMykad)
         return
       }
       nameDisplay.textContent = randomFrom(pool.length ? pool : [winnerName])
