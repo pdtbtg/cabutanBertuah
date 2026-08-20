@@ -383,7 +383,13 @@
 
     for (let i = 0; i < rowsToInsert.length; i += batchSize) {
       const chunk = rowsToInsert.slice(i, i + batchSize)
-      const { error } = await supabase.from('participants').insert(chunk)
+      // upsert + ignoreDuplicates instead of insert: a plain insert() sends
+      // the whole chunk as ONE SQL statement, so a single duplicate
+      // mykad_number fails the entire batch (0 inserted). Upsert lets
+      // Postgres skip just the conflicting rows and still insert the rest.
+      const { error } = await supabase
+        .from('participants')
+        .upsert(chunk, { onConflict: 'mykad_number', ignoreDuplicates: true })
       if (error) {
         failed += chunk.length
         console.error(error)
@@ -398,7 +404,7 @@
     progressText.textContent = 'Selesai.'
     importResult.innerHTML = `
       <div class="alert ${failed > 0 ? 'alert-warning' : 'alert-success'} mb-0">
-        ✅ ${inserted} peserta demo berjaya diimport.${failed > 0 ? ` ⚠️ ${failed} baris gagal — kemungkinan No. KP pendua (lihat console).` : ''}
+        ✅ ${inserted} peserta demo diproses.${failed > 0 ? ` ⚠️ ${failed} baris gagal (lihat console).` : ''}
       </div>`
 
     importBtn.disabled = false
