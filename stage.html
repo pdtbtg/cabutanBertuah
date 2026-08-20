@@ -1,20 +1,64 @@
-/* stage.html */
 <!DOCTYPE html>
 <html lang="ms">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="assets/pahang.ico" type="image/x-icon">
 <title>Cabutan Bertuah</title>
 
 <style>
+  :root {
+    --jg-blue: #010066;
+    --jg-blue-light: #1a2a8f;
+    --jg-red: #cc0001;
+    --jg-gold: #ffcc00;
+  }
   * { box-sizing: border-box; }
   html, body {
     height: 100dvh;
     margin: 0;
     overflow: hidden;
-    background: linear-gradient(135deg, #1e1b4b 0%, #4c1d95 50%, #6366f1 100%);
+    background: linear-gradient(135deg, var(--jg-blue) 0%, var(--jg-blue-light) 45%, var(--jg-red) 100%);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
+
+  /* ---------------- Corporate brand bar, pinned top ---------------- */
+  .stage-brand-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    padding: 1.6dvh 3vw;
+    text-align: center;
+    color: rgba(255,255,255,0.85);
+    z-index: 10;
+  }
+  .stage-brand-bar .eyebrow {
+    font-size: clamp(0.7rem, 1.4vw, 0.95rem);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+  .stage-brand-bar img {
+    height: clamp(20px, 3vw, 30px);
+    width: auto;
+    object-fit: contain;
+    opacity: 0.95;
+  }
+
+  /* thin tricolor accent strip along the very top edge */
+  .flag-strip {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 5px;
+    z-index: 11;
+    background: linear-gradient(90deg, var(--jg-red) 0%, var(--jg-red) 33%, var(--jg-gold) 33%, var(--jg-gold) 66%, var(--jg-blue-light) 66%, var(--jg-blue-light) 100%);
+  }
+
   #stage {
     height: 100dvh;
     display: flex;
@@ -23,16 +67,45 @@
     justify-content: center;
     padding: 4dvh 4vw;
     text-align: center;
+    position: relative;
   }
-  .idle-emoji {
-    font-size: 12dvh;
-    margin-bottom: 2dvh;
+
+  /* faint corner watermark star, echoing the brand panel on the registration page */
+  #stage::before {
+    content: '★';
+    position: absolute;
+    right: -2dvh;
+    bottom: -4dvh;
+    font-size: 40dvh;
+    line-height: 1;
+    color: rgba(255, 204, 0, 0.05);
+    pointer-events: none;
+  }
+
+  .idle-mark {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 204, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 3dvh;
+  }
+  .idle-mark::after {
+    content: '';
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--jg-gold);
   }
   .idle-text {
-    color: rgba(255,255,255,0.7);
-    font-size: 3.2dvh;
+    color: rgba(255,255,255,0.75);
+    font-size: 2.6dvh;
     font-weight: 600;
+    letter-spacing: 0.04em;
   }
+
   .name-display {
     color: #fff;
     font-size: 8dvh;
@@ -46,12 +119,19 @@
     color: rgba(255,255,255,0.85);
   }
   .prize-label {
-    color: #c4b5fd;
+    color: var(--jg-gold);
     font-size: 3dvh;
-    font-weight: 600;
+    font-weight: 700;
     margin-bottom: 2dvh;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
+  }
+  .winner-frame {
+    border: 2px solid rgba(255, 204, 0, 0.55);
+    border-radius: 24px;
+    padding: 5dvh 6vw;
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(2px);
   }
   .winner-badge {
     font-size: 6dvh;
@@ -69,9 +149,16 @@
 </head>
 <body>
 
+<div class="flag-strip"></div>
+<div class="stage-brand-bar">
+  <span class="eyebrow">Program Semarak Jalur Gemilang</span>
+  <img src="./assets/SemarakJalurGemilang.png" alt="Semarak Jalur Gemilang">
+  <span class="eyebrow">Daerah Bentong 2026</span>
+</div>
+
 <div id="stage">
   <div id="idleView">
-    <div class="idle-emoji">🎡</div>
+    <div class="idle-mark"></div>
     <div class="idle-text">Menunggu cabutan seterusnya...</div>
   </div>
 
@@ -81,9 +168,11 @@
   </div>
 
   <div id="winnerView" style="display:none;">
-    <div class="prize-label" id="winnerPrizeLabel"></div>
-    <div class="winner-badge">🏆</div>
-    <div class="name-display confetti-burst" id="winnerNameDisplay"></div>
+    <div class="winner-frame">
+      <div class="prize-label" id="winnerPrizeLabel"></div>
+      <div class="winner-badge">🏆</div>
+      <div class="name-display confetti-burst" id="winnerNameDisplay"></div>
+    </div>
   </div>
 </div>
 
