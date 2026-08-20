@@ -372,7 +372,7 @@
 
   // ---------------- Mod VVIP: sembunyikan semua kecuali butang cabutan ----------------
   function enterVvipMode() {
-    vvipPrizeText.textContent = prizeNameInput.value.trim() || 'Hadiah Misteri'
+    vvipPrizeText.textContent = prizeNameInput.value.trim()
     document.body.classList.add('vvip-mode')
     vvipExitBtn.style.display = 'inline-block'
     setTimeout(sizeChaseRect, 50) // button size changes in VVIP layout
@@ -580,8 +580,9 @@
       Swal.fire({ icon: 'warning', title: 'Tiada peserta layak', text: 'Tiada peserta layak untuk dicabut.' })
       return
     }
-    // Prize name is optional — falls back to a generic label if left blank.
-    const prizeName = prizeNameInput.value.trim() || 'Hadiah Misteri'
+    // Prize name is optional — empty string when left blank, so the stage
+    // simply shows no prize label instead of a placeholder title.
+    const prizeName = prizeNameInput.value.trim()
 
     isSpinning = true
     drawBtn.disabled = true
@@ -654,7 +655,7 @@
     lastWinnerMykad.textContent = winner.mykad_number
     lastWinnerBox.style.display = 'block'
     prizeNameInput.value = ''
-    vvipPrizeText.textContent = 'Hadiah Misteri'
+    vvipPrizeText.textContent = ''
 
     await loadEligible()
     await loadWinnersList()
