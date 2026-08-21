@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" href="assets/pahang.ico" type="image/x-icon">
-<title>Senarai Peserta</title>
+<title>Cabutan Bertuah - Admin</title>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
@@ -257,19 +257,32 @@
   })
 
   async function loadParticipants() {
-    const { data, error } = await supabase
-      .from('participants')
-      .select('*')
-      .order('created_at', { ascending: false })
+    // PostgREST caps a single request at 1000 rows by default, so fetching
+    // beyond that silently truncates unless we page through with .range().
+    const pageSize = 1000
+    let from = 0
+    let allData = []
 
-    if (error) {
-      participantsBody.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-4">Ralat: ${error.message}</td></tr>`
-      return
+    while (true) {
+      const { data, error } = await supabase
+        .from('participants')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .range(from, from + pageSize - 1)
+
+      if (error) {
+        participantsBody.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-4">Ralat: ${error.message}</td></tr>`
+        return
+      }
+
+      allData = allData.concat(data)
+      if (data.length < pageSize) break // last page reached
+      from += pageSize
     }
 
-    allParticipants = data
-    totalCount.textContent = `${data.length} peserta`
-    renderRows(data)
+    allParticipants = allData
+    totalCount.textContent = `${allData.length} peserta`
+    renderRows(allData)
   }
 
   function showDashboard() {
@@ -329,11 +342,26 @@
 
   // ---------------- Export to Excel ----------------
   // Exports whatever is currently displayed (respects the active search filter).
-  exportBtn.addEventListener('click', () => {
+  // Fetched fresh each click so it reflects any draw that happened since page load.
+  async function getWonParticipantIds() {
+    const { data, error } = await supabase.from('winners').select('participant_id')
+    if (error) {
+      console.error(error)
+      return new Set()
+    }
+    return new Set((data || []).map(w => w.participant_id))
+  }
+
+  exportBtn.addEventListener('click', async () => {
     if (currentList.length === 0) {
       Swal.fire('Tiada Data', 'Tiada peserta untuk dieksport.', 'info')
       return
     }
+
+    exportBtn.disabled = true
+    exportBtn.textContent = 'Menyediakan...'
+
+    const wonIds = await getWonParticipantIds()
 
     const rows = currentList.map((p, i) => ({
       '#': i + 1,
@@ -341,7 +369,8 @@
       'No. MyKad': p.mykad_number,
       'No. Telefon': p.phone_number || '-',
       'Emel': p.email || '-',
-      'Tarikh Daftar': formatDate(p.created_at)
+      'Tarikh Daftar': formatDate(p.created_at),
+      'Winner': wonIds.has(p.id) ? 'Yes' : 'No'
     }))
 
     const worksheet = XLSX.utils.json_to_sheet(rows)
@@ -350,6 +379,9 @@
 
     const dateStamp = new Date().toISOString().slice(0, 10)
     XLSX.writeFile(workbook, `senarai-peserta-${dateStamp}.xlsx`)
+
+    exportBtn.disabled = false
+    exportBtn.textContent = '📤 Eksport ke Excel'
   })
 
   // ---------------- Delete selected rows ----------------
@@ -371,7 +403,10 @@
     const { error } = await supabase.from('participants').delete().in('id', idsToDelete)
 
     if (error) {
-      Swal.fire('Ralat', 'Gagal memadam: ' + error.message, 'error')
+      const msg = error.code === '23503'
+        ? 'Sebahagian peserta yang dipilih sudah pernah menang cabutan, jadi tidak boleh dipadam terus. Padam rekod kemenangan mereka dahulu jika benar-benar mahu memadam peserta ini.'
+        : 'Gagal memadam: ' + error.message
+      Swal.fire('Ralat', msg, 'error')
       return
     }
 
@@ -408,7 +443,10 @@
     const { error } = await supabase.from('participants').delete().not('id', 'is', null)
 
     if (error) {
-      Swal.fire('Ralat', 'Gagal mengosongkan senarai: ' + error.message, 'error')
+      const msg = error.code === '23503'
+        ? 'Tidak dapat mengosongkan senarai kerana masih ada rekod pemenang berkaitan. Jalankan SQL untuk membenarkan padam berlonggok (ON DELETE CASCADE) — rujuk arahan yang diberikan.'
+        : 'Gagal mengosongkan senarai: ' + error.message
+      Swal.fire('Ralat', msg, 'error')
       return
     }
 
