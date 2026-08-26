@@ -626,25 +626,29 @@
     const sprite = createNameSprite(entry.name)
     sprite.position.set(0, 1.0, 1.1)
     group.add(sprite)
-
+  
     const mouth = getBoxMouthPosition(new THREE.Vector3())
     group.position.copy(mouth)
     group.scale.setScalar(0.05)
-
+  
     const finalScale = cryptoRandomRange(CONFIG.balloonScaleMin, CONFIG.balloonScaleMax)
     const balloon = {
       group, sprite, name: entry.name, isWinner: entry.isWinner,
       spawnTime: now,
       finalScale,
-      driftX: cryptoRandomRange(-2.4, 2.4),   // sasaran anjakan mendatar semasa naik
+      driftX: cryptoRandomRange(-2.4, 2.4),
       swaySeed: cryptoRandomFloat() * Math.PI * 2,
       riseSpeed: cryptoRandomRange(CONFIG.balloonRiseSpeedMin, CONFIG.balloonRiseSpeedMax),
       popAt: entry.isWinner ? now + cryptoRandomRange(CONFIG.winnerPopDelayMinMs, CONFIG.winnerPopDelayMaxMs) : null,
       popped: false,
       baseXAtMouth: mouth.x,
-      layerZ: cryptoRandomRange(-1.6, 1.6),   // lapisan kedalaman tetap untuk belon ini
+      layerZ: cryptoRandomRange(-1.6, 1.6),
+      // anjakan awal rawak supaya belon tidak bertindan sesama sendiri sebaik keluar dari mulut kotak
+      spawnOffsetX: cryptoRandomRange(-0.9, 0.9),
+      // anjakan kolisi terkumpul, ditambah oleh resolveBalloonCollisions semasa fasa muncul
+      collisionOffsetX: 0,
+      collisionOffsetZ: 0,
     }
-    // pastikan belon pemenang mula mengembang sebelum masa pop supaya penonton nampak ia membesar
     if (balloon.popAt !== null) {
       balloon.preBurstStartAt = balloon.popAt - CONFIG.winnerPreBurstGrowMs
     }
@@ -682,24 +686,23 @@
     for (let i = activeBalloons.length - 1; i >= 0; i--) {
       const b = activeBalloons[i]
       const age = now - b.spawnTime
-
+  
       if (age < CONFIG.balloonEmergeMs) {
-        // fasa keluar dari kotak: kecil -> saiz penuh, sambil beransur naik sedikit
         const t = clamp01(age / CONFIG.balloonEmergeMs)
         const eased = easeOutBack(t)
         b.group.scale.setScalar(Math.max(0.05, eased * b.finalScale))
         const mouth = getBoxMouthPosition(new THREE.Vector3())
-        b.group.position.x = mouth.x + (b.driftX * 0.15) * t
+        // gabungkan anjakan awal rawak + offset kolisi terkumpul dengan formula asal,
+        // supaya belon tidak semua muncul dari titik yang sama & kolisi kekal berkesan semasa fasa ini
+        b.group.position.x = mouth.x + (b.driftX * 0.15) * t + b.spawnOffsetX * t + b.collisionOffsetX
         b.group.position.y = mouth.y + t * 1.1
-        b.group.position.z = mouth.z + b.layerZ
+        b.group.position.z = mouth.z + b.layerZ + b.collisionOffsetZ
       } else {
-        // fasa terbang bebas: naik perlahan + anjak mendatar rawak + ayunan lembut
         b.group.position.y += b.riseSpeed * dt
         const riseT = clamp01((b.group.position.y - 1.5) / 12)
         b.group.position.x += (b.driftX * dt * 0.18)
         b.group.position.x += Math.sin(now / 650 + b.swaySeed) * 0.012
-
-        // belon pemenang mengembang lebih besar & jadi lebih dominan (tarik ke tengah/depan + glow) sejurus sebelum ia pecah
+  
         if (b.isWinner && !b.popped && b.preBurstStartAt !== undefined && now >= b.preBurstStartAt) {
           const growT = clamp01((now - b.preBurstStartAt) / CONFIG.winnerPreBurstGrowMs)
           const eased = easeInOutSine(growT)
@@ -711,15 +714,15 @@
             b.group.userData.material.emissiveIntensity = CONFIG.winnerPreBurstEmissive * eased
           }
         } else {
-          b.group.scale.setScalar(b.finalScale) // pastikan kekal saiz penuh
+          b.group.scale.setScalar(b.finalScale)
         }
       }
-
+  
       if (b.isWinner && !b.popped && b.popAt !== null && now >= b.popAt) {
         popWinnerBalloon(b)
         continue
       }
-
+  
       if (b.group.position.y > CONFIG.balloonTopBound) {
         scene.remove(b.group)
         activeBalloons.splice(i, 1)
@@ -781,7 +784,6 @@
         const dz = b.group.position.z - a.group.position.z
         const distSq = dx * dx + dy * dy + dz * dz
   
-        // jejari berkesan = jejari badan ATAU separuh lebar sprite, ambil yang lebih besar
         const aRadius = Math.max(a.finalScale, SPRITE_HALF_WIDTH * a.finalScale)
         const bRadius = Math.max(b.finalScale, SPRITE_HALF_WIDTH * b.finalScale)
         const minDist = aRadius + bRadius + CONFIG.balloonSeparationMargin
@@ -791,14 +793,24 @@
         const overlap = (minDist - dist) * pushRate
         const nx = dx / dist
         const ny = dy / dist
+        const nz = dz / dist
         const totalMass = a.finalScale + b.finalScale
         const pushA = overlap * (b.finalScale / totalMass)
         const pushB = overlap * (a.finalScale / totalMass)
   
+        // simpan anjakan kolisi secara berasingan supaya fasa "muncul" (emerge) boleh
+        // menambahnya kepada formula kedudukan asal, bukan menimpanya
+        a.collisionOffsetX -= nx * pushA
+        a.collisionOffsetZ -= nz * pushA
         a.group.position.x -= nx * pushA
         a.group.position.y -= ny * pushA * 0.4
+        a.group.position.z -= nz * pushA
+  
+        b.collisionOffsetX += nx * pushB
+        b.collisionOffsetZ += nz * pushB
         b.group.position.x += nx * pushB
         b.group.position.y += ny * pushB * 0.4
+        b.group.position.z += nz * pushB
       }
     }
   }
