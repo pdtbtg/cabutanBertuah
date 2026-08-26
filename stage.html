@@ -373,21 +373,35 @@
     bowGroup.position.set(0, lidH + 0.05, bd * 0.54)
     lidPivot.add(bowGroup)
     
-    function createLoopMesh(sign) {
-      const geo = new THREE.SphereGeometry(1, 16, 12)
-      geo.scale(0.34, 0.52, 0.14)  // pipihkan: nipis (z), memanjang ke atas (y), sederhana lebar (x)
-      geo.translate(0, 0.52, 0)    // anjak supaya pangkal sempit berada di titik asal (0,0) - titik pinch
-      const mesh = new THREE.Mesh(geo, ribbonMat)
-      mesh.rotation.z = sign * (Math.PI / 6.5)  // kipas keluar - satu paksi sahaja
-      mesh.position.set(sign * 0.02, 0, 0)
-      return mesh
-    }
+    const bowGroup = new THREE.Group()
+    bowGroup.position.set(0, lidH + 0.06, bd * 0.54)
+    lidPivot.add(bowGroup)
     
-    const loopL = createLoopMesh(-1)
-    bowGroup.add(loopL)
+    // Teknik disahkan berfungsi: lengkung TERTUTUP (mula & tamat di titik sama, 0,0,0)
+    // berbentuk lensa, dibalut TubeGeometry - hasilnya gelung reben yang licin.
+    // Loop kiri = loop kanan dicermin (nafikan x), jadi automatik simetri sempurna.
+    const loopScale = 0.4
+    const loopCurve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(1 * loopScale, 0.5 * loopScale, 0),
+      new THREE.Vector3(1.5 * loopScale, 0, 0),
+      new THREE.Vector3(1 * loopScale, -0.5 * loopScale, 0),
+      new THREE.Vector3(0, 0, 0),
+    ])
     
-    const loopR = createLoopMesh(1)
-    bowGroup.add(loopR)
+    const tubeRadius = 0.05
+    const tubeSegments = 48
+    const loopGeoRight = new THREE.TubeGeometry(loopCurve, tubeSegments, tubeRadius, 10)
+    const loopRight = new THREE.Mesh(loopGeoRight, ribbonMat)
+    bowGroup.add(loopRight)
+    
+    const mirroredPoints = loopCurve.points.map((p) => new THREE.Vector3(-p.x, p.y, p.z))
+    const mirroredCurve = new THREE.CatmullRomCurve3(mirroredPoints)
+    const loopGeoLeft = new THREE.TubeGeometry(mirroredCurve, tubeSegments, tubeRadius, 10)
+    const loopLeft = new THREE.Mesh(loopGeoLeft, ribbonMat)
+    bowGroup.add(loopLeft)
+    
+    bowGroup.rotation.x = -Math.PI / 10  // condongkan sedikit ke atas supaya nampak timbul dari lid
     
     // ekor reben - dua jalur nipis condong ke bawah & ke luar dari pusat, hujung dipotong serong
     const tailGeo = new THREE.BoxGeometry(0.11, 0.32, 0.045)
