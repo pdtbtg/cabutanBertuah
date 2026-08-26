@@ -844,7 +844,7 @@
   // hanya kira badan, papan nama masih boleh "menembusi" belon jiran secara optik
   const SPRITE_HALF_WIDTH = 1.35 // separuh lebar sprite (scale.x 2.7 / 2)
   
-  function resolveBalloonCollisions(dt) {
+  function resolveBalloonCollisions(dt, now) {
     const pushRate = Math.min(1, dt * CONFIG.balloonSeparationStrength)
     for (let i = 0; i < activeBalloons.length; i++) {
       const a = activeBalloons[i]
@@ -865,12 +865,25 @@
         const nx = dx / dist
         const ny = dy / dist
         const nz = dz / dist
-        const totalMass = a.finalScale + b.finalScale
-        const pushA = overlap * (b.finalScale / totalMass)
-        const pushB = overlap * (a.finalScale / totalMass)
   
-        // simpan anjakan kolisi secara berasingan supaya fasa "muncul" (emerge) boleh
-        // menambahnya kepada formula kedudukan asal, bukan menimpanya
+        // belon pemenang yang sedang dalam fasa mengembang (pre-burst) jadi "immovable" -
+        // ia boleh menolak belon lain menjauh, tapi tak boleh ditolak balik oleh sesiapa
+        const aIsDominant = a.isWinner && a.preBurstStartAt !== undefined && now >= a.preBurstStartAt
+        const bIsDominant = b.isWinner && b.preBurstStartAt !== undefined && now >= b.preBurstStartAt
+  
+        let pushA, pushB
+        if (aIsDominant) {
+          pushA = 0
+          pushB = overlap
+        } else if (bIsDominant) {
+          pushB = 0
+          pushA = overlap
+        } else {
+          const totalMass = a.finalScale + b.finalScale
+          pushA = overlap * (b.finalScale / totalMass)
+          pushB = overlap * (a.finalScale / totalMass)
+        }
+  
         a.collisionOffsetX -= nx * pushA
         a.collisionOffsetZ -= nz * pushA
         a.group.position.x -= nx * pushA
@@ -901,7 +914,7 @@
 
     updatePhases(now, dt)
     updateBalloons(now, dt)
-    resolveBalloonCollisions(dt)
+    resolveBalloonCollisions(dt, now)
     updateConfetti(dt)
     // nafas cahaya keemasan pada kotak - buat ia sentiasa hidup & menonjol
     boxSpot.intensity = 3.2 + Math.sin(now / 600) * 1.4
