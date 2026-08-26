@@ -373,34 +373,36 @@
     bowGroup.position.set(0, lidH + 0.05, bd * 0.54)
     lidPivot.add(bowGroup)
     
-    // bentuk gelung ribbon tunggal - asimetri (bukan dua lengkung simetri macam heart),
-    // melengkung keluar lebar lepas tu berpatah balik ke pangkal yang sama (0,0)
-    function createLoopShape(sign) {
-      const w = 0.42, h = 0.4
-      const s = new THREE.Shape()
-      s.moveTo(0, 0)
-      s.bezierCurveTo(sign * w * 0.9, h * 0.1, sign * w * 1.05, h * 0.65, sign * w * 0.35, h * 0.98)
-      s.bezierCurveTo(sign * w * 0.05, h * 1.15, sign * -w * 0.15, h * 0.85, sign * -w * 0.1, h * 0.5)
-      s.bezierCurveTo(sign * -w * 0.08, h * 0.25, sign * -w * 0.03, h * 0.08, 0, 0)
-      return s
+    // bina satu gelung reben sebagai tiub mengikut laluan lengkung (curve) - laluan bermula &
+    // berakhir dekat titik pangkal (pinch point di simpul), melengkung keluar lebar lepas tu
+    // pulang semula - inilah bentuk sebenar satu gelung reben terlipat
+    function createLoopCurve(sign) {
+      const pts = [
+        new THREE.Vector3(0, 0, 0),
+        new THREE.Vector3(sign * 0.06, 0.16, 0.03),
+        new THREE.Vector3(sign * 0.34, 0.34, 0.05),
+        new THREE.Vector3(sign * 0.40, 0.58, 0.01),
+        new THREE.Vector3(sign * 0.22, 0.70, -0.03),
+        new THREE.Vector3(sign * 0.02, 0.56, -0.04),
+        new THREE.Vector3(sign * 0.05, 0.24, -0.01),
+        new THREE.Vector3(0, 0.02, 0),
+      ]
+      return new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.5)
     }
     
-    const extrudeSettings = { depth: 0.05, bevelEnabled: false }
-    const loopGeoL = new THREE.ExtrudeGeometry(createLoopShape(-1), extrudeSettings)
-    loopGeoL.translate(0, 0, -extrudeSettings.depth / 2)
-    const loopGeoR = new THREE.ExtrudeGeometry(createLoopShape(1), extrudeSettings)
-    loopGeoR.translate(0, 0, -extrudeSettings.depth / 2)
+    function createLoopMesh(sign) {
+      const curve = createLoopCurve(sign)
+      const geo = new THREE.TubeGeometry(curve, 32, 0.075, 8, false)
+      geo.scale(1, 1, 0.35) // pipihkan supaya nampak macam jalur reben rata, bukan tiub bulat
+      return new THREE.Mesh(geo, ribbonMat)
+    }
     
-    const loopL = new THREE.Mesh(loopGeoL, ribbonMat)
-    loopL.position.set(-0.04, 0.02, 0)
-    loopL.rotation.y = -Math.PI / 6   // kipas ke kiri
-    loopL.rotation.z = Math.PI / 9    // condongkan hujung ke atas-kiri
+    const loopL = createLoopMesh(-1)
+    loopL.position.set(0, 0, 0)
     bowGroup.add(loopL)
     
-    const loopR = new THREE.Mesh(loopGeoR, ribbonMat)
-    loopR.position.set(0.04, 0.02, 0)
-    loopR.rotation.y = Math.PI / 6    // kipas ke kanan (bayangan cermin loopL)
-    loopR.rotation.z = -Math.PI / 9   // condongkan hujung ke atas-kanan
+    const loopR = createLoopMesh(1)
+    loopR.position.set(0, 0, 0)
     bowGroup.add(loopR)
     
     // ekor reben - dua jalur nipis condong ke bawah & ke luar dari pusat, hujung dipotong serong
