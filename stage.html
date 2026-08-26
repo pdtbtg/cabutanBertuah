@@ -304,7 +304,7 @@
   const dirLight = new THREE.DirectionalLight(0xffffff, 0.65)
   dirLight.position.set(4, 10, 8)
   scene.add(dirLight)
-  const boxSpot = new THREE.PointLight(0xffcc00, 4, 14, 2)
+  const boxSpot = new THREE.PointLight(0xffcc00, 4, 8, 2)
   boxSpot.position.set(0, 3.2, 4.5)
   scene.add(boxSpot)
 
@@ -450,7 +450,7 @@
     return sprite
   }
   
-  const boxGlow = createGlowSprite(0xffcc00, 5)
+  const boxGlow = createGlowSprite(0xffcc00, 8)
   boxGlow.position.copy(BOX_BASE_POSITION)
   boxGlow.position.y += 1.2
   boxGlow.position.z -= 0.5
