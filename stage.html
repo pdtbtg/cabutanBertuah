@@ -378,7 +378,7 @@
     const bodyGeo = new THREE.SphereGeometry(1, 28, 22)
     bodyGeo.scale(1, 1.22, 1)
     const bodyMat = new THREE.MeshStandardMaterial({
-      color: colorHex, roughness: 0.28, metalness: 0.05, transparent: true, opacity: 1,
+      color: colorHex, roughness: 0.28, metalness: 0.05,
       emissive: colorHex, emissiveIntensity: 0,
     })
     const body = new THREE.Mesh(bodyGeo, bodyMat)
