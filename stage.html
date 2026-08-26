@@ -304,9 +304,9 @@
   const dirLight = new THREE.DirectionalLight(0xffffff, 0.65)
   dirLight.position.set(4, 10, 8)
   scene.add(dirLight)
-  const boxSpot = new THREE.PointLight(0xffcc00, 3.5, 10)
-  boxSpot.position.set(0, 2.5, 4)
-  scene.add(boxSpot)
+  //const boxSpot = new THREE.PointLight(0xffcc00, 3.5, 10)
+  //boxSpot.position.set(0, 2.5, 4)
+  //scene.add(boxSpot)
 
   // Lampu sorot ringkas untuk detik belon pemenang pecah (kilasan pantas, tidak menggerakkan belon)
   const spotLight = new THREE.SpotLight(0xfff3c4, 0, 30, Math.PI / 6, 0.6, 1.2)
@@ -430,9 +430,62 @@
     return { group, lidPivot, bodyTopY: bh, bodyMat }
   }
 
-  const giftBox = createGiftBoxMesh(0xf5f1e6)
+  const giftBox = createGiftBoxMesh(0xf8f4e8)
   giftBox.group.position.copy(BOX_BASE_POSITION)
   scene.add(giftBox.group)
+  // ============================================================
+  // GIFT BOX BACK GLOW
+  // Halo lembut di belakang box supaya silhouette box lebih menonjol
+  // ============================================================
+  function createBoxGlow() {
+    const canvas = document.createElement('canvas')
+    canvas.width = 512
+    canvas.height = 512
+  
+    const ctx = canvas.getContext('2d')
+  
+    const gradient = ctx.createRadialGradient(
+      256, 256, 30,
+      256, 256, 250
+    )
+  
+    gradient.addColorStop(0, 'rgba(255, 204, 0, 0.55)')
+    gradient.addColorStop(0.28, 'rgba(255, 204, 0, 0.30)')
+    gradient.addColorStop(0.60, 'rgba(255, 204, 0, 0.10)')
+    gradient.addColorStop(1, 'rgba(255, 204, 0, 0)')
+  
+    ctx.fillStyle = gradient
+    ctx.fillRect(0, 0, 512, 512)
+  
+    const texture = new THREE.CanvasTexture(canvas)
+  
+    const material = new THREE.SpriteMaterial({
+      map: texture,
+      transparent: true,
+      opacity: 0.9,
+      depthWrite: false,
+      depthTest: false,
+      blending: THREE.AdditiveBlending
+    })
+  
+    const sprite = new THREE.Sprite(material)
+  
+    // Saiz halo
+    sprite.scale.set(6.5, 4.8, 1)
+  
+    // Letak sedikit di belakang box
+    sprite.position.set(0, 1.15, -1.0)
+  
+    scene.add(sprite)
+  
+    return sprite
+  }
+  
+  const boxGlow = createBoxGlow()
+  / ============================================================
+  // GIFT BOX BACK GLOW TAMAT
+  // Halo lembut di belakang box supaya silhouette box lebih menonjol
+  // ============================================================
   const boxRestPosition = giftBox.group.position.clone()
   const boxRestRotationZ = 0
   let lidOpenTarget = 0 // 0 = tertutup, 1 = terbuka penuh
