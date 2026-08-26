@@ -470,7 +470,7 @@
     const mat = new THREE.SpriteMaterial({
       map: texture,
       transparent: false, alphaTest: 0.5,
-      depthWrite: false, depthTest: true,
+      depthWrite: true, depthTest: true,
     })
     const sprite = new THREE.Sprite(mat)
     sprite.scale.set(2.7, 0.9, 1)
