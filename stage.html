@@ -611,6 +611,7 @@
       popAt: entry.isWinner ? now + cryptoRandomRange(CONFIG.winnerPopDelayMinMs, CONFIG.winnerPopDelayMaxMs) : null,
       popped: false,
       baseXAtMouth: mouth.x,
+      layerZ: cryptoRandomRange(-1.6, 1.6),   // lapisan kedalaman tetap untuk belon ini
     }
     // pastikan belon pemenang mula mengembang sebelum masa pop supaya penonton nampak ia membesar
     if (balloon.popAt !== null) {
@@ -659,7 +660,7 @@
         const mouth = getBoxMouthPosition(new THREE.Vector3())
         b.group.position.x = mouth.x + (b.driftX * 0.15) * t
         b.group.position.y = mouth.y + t * 1.1
-        b.group.position.z = mouth.z
+        b.group.position.z = mouth.z + b.layerZ
       } else {
         // fasa terbang bebas: naik perlahan + anjak mendatar rawak + ayunan lembut
         b.group.position.y += b.riseSpeed * dt
@@ -744,7 +745,8 @@
         const b = activeBalloons[j]
         const dx = b.group.position.x - a.group.position.x
         const dy = b.group.position.y - a.group.position.y
-        const distSq = dx * dx + dy * dy
+        const dz = b.group.position.z - a.group.position.z
+        const distSq = dx * dx + dy * dy + dz * dz
         const minDist = a.finalScale + b.finalScale + CONFIG.balloonSeparationMargin
         if (distSq >= minDist * minDist || distSq < 0.0001) continue
 
