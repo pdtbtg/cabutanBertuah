@@ -171,6 +171,7 @@
 
 <script type="module">
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
+  import { SVGLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/SVGLoader.js'
   import * as THREE from 'three'
 
   /* ============================================================
@@ -315,6 +316,55 @@
   /* ============================================================
      KOTAK HADIAH (Three.js Geometry, statik di base, dengan lid berhinge)
      ============================================================ */
+  // Markup SVG bow disematkan terus di sini (dari fail yang dimuat naik), supaya tak perlu
+  // fetch fail berasingan - loader.parse() boleh baca terus dari teks SVG
+  const ribbonSvgMarkup = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 485.417 485.417">
+    <path d="M306.349,223.693c-3.288,3.72-8.082,6.08-13.425,6.08h-98.7c-5.088,0-9.677-2.138-12.945-5.549
+      C150.938,270.23,47.892,345.232,47.892,345.232h64.084v70.922c79.062-37.875,115.357-97.771,132.013-143.673
+      c16.657,45.897,52.952,105.798,132.015,143.673v-70.922h64.085C440.088,345.232,336.245,269.653,306.349,223.693z"/>
+    <path d="M8.226,222.346c8.485,7.291,22.638,10.93,42.367,10.93c29.607,0,71.332-13.098,125.69-29.599V128.27
+      c-13.708-15.487-93.17-98.215-176.201-36.333v113.208C-0.062,206.146-0.875,214.529,8.226,222.346z M12.246,195.938
+      c20.776-14.649,68.721-35.703,147.901-1.479C16.042,247.533,11.463,205.898,12.246,195.938z"/>
+    <path d="M485.334,91.937c-80.036-59.648-156.761,15.07-174.467,34.408v77.857c53.506,16.252,94.666,29.07,123.957,29.073
+      c19.729,0,33.881-3.64,42.368-10.93c9.097-7.814,8.286-16.2,8.144-17.198V91.937H485.334z M325.269,194.459
+      c79.181-34.225,127.126-13.171,147.901,1.479C473.952,205.898,469.374,247.533,325.269,194.459z"/>
+    <path d="M292.924,216.958c2.833,0,5.127-2.294,5.127-5.126v-8.29v-90.41c0-2.833-2.294-5.127-5.127-5.127h-98.7
+      c-2.832,0-5.126,2.294-5.126,5.127v94.596v4.104c0,2.833,2.294,5.126,5.126,5.126H292.924z"/>
+  </svg>`
+  
+  // Tukar SVG bow kepada mesh 3D - baca path, extrude bagi ketebalan, auto-center &
+  // auto-scale ikut bounding box sebenar (jadi tak bergantung nombor tetap dari viewBox asal)
+  function createBowFromSvg(ribbonMat) {
+    const loader = new SVGLoader()
+    const svgData = loader.parse(ribbonSvgMarkup)
+  
+    const bowGroup = new THREE.Group()
+    const extrudeSettings = { depth: 14, bevelEnabled: true, bevelThickness: 3, bevelSize: 2, bevelSegments: 2 }
+  
+    svgData.paths.forEach((path) => {
+      SVGLoader.createShapes(path).forEach((shape) => {
+        const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings)
+        const mesh = new THREE.Mesh(geometry, ribbonMat)
+        bowGroup.add(mesh)
+      })
+    })
+  
+    // auto-center: kira bounding box gabungan semua path, tolak titik tengah dari setiap mesh
+    const box = new THREE.Box3().setFromObject(bowGroup)
+    const size = new THREE.Vector3()
+    box.getSize(size)
+    const center = new THREE.Vector3()
+    box.getCenter(center)
+    bowGroup.children.forEach((mesh) => mesh.position.sub(center))
+  
+    // auto-scale supaya lebar akhir bow ~0.85 unit dunia, tak kira saiz asal viewBox SVG
+    const desiredWidth = 0.85
+    const scale = desiredWidth / size.x
+    // scale.y NEGATIF sebab paksi-Y SVG terbalik (bawah = positif) berbanding Three.js (atas = positif)
+    bowGroup.scale.set(scale, -scale, scale)
+  
+    return bowGroup
+  }
   function createGiftBoxMesh(bodyColor, interiorColor = 0x0d0e12) {
     const group = new THREE.Group()
     const bw = 2.7, bh = 1.75, bd = 2.7, lidH = 0.48
@@ -323,8 +373,8 @@
     const interiorMat = new THREE.MeshStandardMaterial({ color: interiorColor, roughness: 0.9, metalness: 0 })
     const ribbonMat = new THREE.MeshStandardMaterial({
       color: 0xffcc00,
-      roughness: 0.45,   // was 0.3 — slightly more matte/fabric-like, less plasticky
-      metalness: 0.0,    // was 0.3 — ribbons aren't metallic; this was giving a chrome-ish sheen
+      roughness: 0.45,
+      metalness: 0.0,
     })
   
     // muka sisi/bawah guna bodyMat (luaran), muka atas guna interiorMat gelap -
@@ -361,62 +411,18 @@
     ])
     lidRibbonV.position.set(0, lidH / 2 + 0.005, bd * 0.54)
     lidPivot.add(lidRibbonV)
-    
+  
     // pita melintang (horizontal) di atas lid - muka bawah guna interiorMat supaya bahagian dalam kekal hitam
     const lidRibbonH = new THREE.Mesh(new THREE.BoxGeometry(bw * 1.08, lidH * 1.02, bd * 0.16), [
       ribbonMat, ribbonMat, ribbonMat, interiorMat, ribbonMat, ribbonMat,
     ])
     lidRibbonH.position.set(0, lidH / 2 + 0.005, bd * 0.54)
     lidPivot.add(lidRibbonH)
-    
-    const bowGroup = new THREE.Group()
-    bowGroup.position.set(0, lidH + 0.06, bd * 0.54)
+  
+    // bow dari fail SVG - loop, ekor & band tengah semua sekali dalam satu bentuk
+    const bowGroup = createBowFromSvg(ribbonMat)
+    bowGroup.position.set(0, lidH + 0.14, bd * 0.54)
     lidPivot.add(bowGroup)
-    
-    // Teknik disahkan berfungsi: lengkung TERTUTUP (mula & tamat di titik sama, 0,0,0)
-    // berbentuk lensa, dibalut TubeGeometry - hasilnya gelung reben yang licin.
-    // Loop kiri = loop kanan dicermin (nafikan x), jadi automatik simetri sempurna.
-    const loopScale = 0.4
-    const loopCurve = new THREE.CatmullRomCurve3([
-      new THREE.Vector3(0, 0, 0),
-      new THREE.Vector3(1 * loopScale, 0.5 * loopScale, 0),
-      new THREE.Vector3(1.5 * loopScale, 0, 0),
-      new THREE.Vector3(1 * loopScale, -0.5 * loopScale, 0),
-      new THREE.Vector3(0, 0, 0),
-    ])
-    
-    const tubeRadius = 0.05
-    const tubeSegments = 48
-    const loopGeoRight = new THREE.TubeGeometry(loopCurve, tubeSegments, tubeRadius, 10)
-    const loopRight = new THREE.Mesh(loopGeoRight, ribbonMat)
-    bowGroup.add(loopRight)
-    
-    const mirroredPoints = loopCurve.points.map((p) => new THREE.Vector3(-p.x, p.y, p.z))
-    const mirroredCurve = new THREE.CatmullRomCurve3(mirroredPoints)
-    const loopGeoLeft = new THREE.TubeGeometry(mirroredCurve, tubeSegments, tubeRadius, 10)
-    const loopLeft = new THREE.Mesh(loopGeoLeft, ribbonMat)
-    bowGroup.add(loopLeft)
-    
-    bowGroup.rotation.x = -Math.PI / 10  // condongkan sedikit ke atas supaya nampak timbul dari lid
-    
-    // ekor reben - dua jalur nipis condong ke bawah & ke luar dari pusat, hujung dipotong serong
-    const tailGeo = new THREE.BoxGeometry(0.11, 0.32, 0.045)
-    const tailL = new THREE.Mesh(tailGeo, ribbonMat)
-    tailL.position.set(-0.1, -0.16, 0.02)
-    tailL.rotation.z = Math.PI / 9
-    bowGroup.add(tailL)
-    
-    const tailR = new THREE.Mesh(tailGeo, ribbonMat)
-    tailR.position.set(0.1, -0.16, -0.02)
-    tailR.rotation.z = -Math.PI / 9
-    bowGroup.add(tailR)
-    
-    // simpul tengah - kekal guna sfera kecil, tapi lebih kecil & rata supaya ia hanya menutup
-    // pangkal gelung/ekor, bukan menjadi objek dominan dalam bentuk bow
-    const knot = new THREE.Mesh(new THREE.SphereGeometry(0.13, 14, 12), ribbonMat)
-    knot.scale.set(1, 0.8, 0.85)
-    knot.position.set(0, 0.07, 0.02)
-    bowGroup.add(knot)
   
     return { group, lidPivot, bodyTopY: bh, bodyMat }
   }
