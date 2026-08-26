@@ -387,13 +387,6 @@
     ])
     body.position.y = bh / 2
     group.add(body)
-    const glowShellMat = new THREE.MeshBasicMaterial({
-      color: 0xffcc00, transparent: true, opacity: 0.4,
-      side: THREE.BackSide, blending: THREE.AdditiveBlending, depthWrite: false,
-    })
-    const bodyGlowShell = new THREE.Mesh(body.geometry, glowShellMat)
-    bodyGlowShell.scale.set(1.07, 1.07, 1.07)
-    body.add(bodyGlowShell)
   
     const ribbonV = new THREE.Mesh(new THREE.BoxGeometry(bw * 0.15, bh - 0.02, bd + 0.02), ribbonMat)
     ribbonV.position.y = bh / 2 - 0.01
@@ -434,7 +427,7 @@
     bowGroup.position.set(0, lidH + 0.14, bd * 0.54)
     lidPivot.add(bowGroup)
   
-    return { group, lidPivot, bodyTopY: bh, bodyMat, bodyGlowShell }
+    return { group, lidPivot, bodyTopY: bh, bodyMat }
   }
 
   function createGlowSprite(hexColor, size) {
@@ -817,7 +810,6 @@
       const s = CONFIG.shakeStrength * shakeT
       giftBox.group.position.x = boxRestPosition.x + (cryptoRandomFloat() - 0.5) * s
       giftBox.group.rotation.z = boxRestRotationZ + (cryptoRandomFloat() - 0.5) * s * 0.6
-      giftBox.bodyGlowShell.material.opacity = 0.4 + (1 - shakeT) * 0.5
       if (shakeTimer <= 0) {
         giftBox.group.position.copy(boxRestPosition)
         giftBox.group.rotation.set(0, 0, boxRestRotationZ)
