@@ -433,6 +433,11 @@
   const giftBox = createGiftBoxMesh(0xf8f4e8)
   giftBox.group.position.copy(BOX_BASE_POSITION)
   scene.add(giftBox.group)
+  const boxRestPosition = giftBox.group.position.clone()
+  const boxRestRotationZ = 0
+  let lidOpenTarget = 0 // 0 = tertutup, 1 = terbuka penuh
+  let shakeTimer = 0 // ms baki gegaran
+
   // ============================================================
   // GIFT BOX BACK GLOW
   // Halo lembut di belakang box supaya silhouette box lebih menonjol
@@ -486,10 +491,6 @@
   // GIFT BOX BACK GLOW TAMAT
   // Halo lembut di belakang box supaya silhouette box lebih menonjol
   // ============================================================
-  const boxRestPosition = giftBox.group.position.clone()
-  const boxRestRotationZ = 0
-  let lidOpenTarget = 0 // 0 = tertutup, 1 = terbuka penuh
-  let shakeTimer = 0 // ms baki gegaran
 
   // mulut kotak - tempat belon "keluar" (kedudukan dunia, dikira semula setiap frame jika kotak bergegar)
   function getBoxMouthPosition(target) {
