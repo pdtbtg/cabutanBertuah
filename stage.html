@@ -373,17 +373,15 @@
     bowGroup.position.set(0, lidH + 0.05, bd * 0.54)
     lidPivot.add(bowGroup)
     
-    // bina outline gelung reben (petal/teardrop) sebagai Shape 2D, pastikan pangkal (pinch)
-    // bermula di (0,0) - ini titik yang akan berada betul-betul di bawah simpul (knot)
-    // sign = +1 untuk gelung kanan, -1 untuk gelung kiri (mirror x secara eksplisit,
-    // bukan guna scale.x negatif, supaya normal permukaan tak terbalik/pupus dari pandangan depan)
+    // bentuk gelung ribbon tunggal - asimetri (bukan dua lengkung simetri macam heart),
+    // melengkung keluar lebar lepas tu berpatah balik ke pangkal yang sama (0,0)
     function createLoopShape(sign) {
-      const w = 0.24, h = 0.46
+      const w = 0.42, h = 0.4
       const s = new THREE.Shape()
       s.moveTo(0, 0)
-      s.bezierCurveTo(sign * w * 0.15, h * 0.05, sign * w, h * 0.35, sign * w * 0.55, h * 0.85)
-      s.bezierCurveTo(sign * w * 0.25, h * 1.05, sign * -w * 0.25, h * 1.05, sign * -w * 0.55, h * 0.85)
-      s.bezierCurveTo(sign * -w, h * 0.35, sign * -w * 0.15, h * 0.05, 0, 0)
+      s.bezierCurveTo(sign * w * 0.9, h * 0.1, sign * w * 1.05, h * 0.65, sign * w * 0.35, h * 0.98)
+      s.bezierCurveTo(sign * w * 0.05, h * 1.15, sign * -w * 0.15, h * 0.85, sign * -w * 0.1, h * 0.5)
+      s.bezierCurveTo(sign * -w * 0.08, h * 0.25, sign * -w * 0.03, h * 0.08, 0, 0)
       return s
     }
     
