@@ -373,21 +373,36 @@
     bowGroup.position.set(0, lidH + 0.05, bd * 0.54)
     lidPivot.add(bowGroup)
     
-    const loopGeo = new THREE.TorusGeometry(0.24, 0.065, 10, 24, Math.PI * 1.5) // gelung terbuka (270°)
-    loopGeo.scale(1, 0.45, 1) // pipihkan jadi rupa reben rata
+    // bina outline gelung reben (petal/teardrop) sebagai Shape 2D, pastikan pangkal (pinch)
+    // bermula di (0,0) - ini titik yang akan berada betul-betul di bawah simpul (knot)
+    // sign = +1 untuk gelung kanan, -1 untuk gelung kiri (mirror x secara eksplisit,
+    // bukan guna scale.x negatif, supaya normal permukaan tak terbalik/pupus dari pandangan depan)
+    function createLoopShape(sign) {
+      const w = 0.24, h = 0.46
+      const s = new THREE.Shape()
+      s.moveTo(0, 0)
+      s.bezierCurveTo(sign * w * 0.15, h * 0.05, sign * w, h * 0.35, sign * w * 0.55, h * 0.85)
+      s.bezierCurveTo(sign * w * 0.25, h * 1.05, sign * -w * 0.25, h * 1.05, sign * -w * 0.55, h * 0.85)
+      s.bezierCurveTo(sign * -w, h * 0.35, sign * -w * 0.15, h * 0.05, 0, 0)
+      return s
+    }
     
-    const loopL = new THREE.Mesh(loopGeo, ribbonMat)
-    loopL.position.set(-0.16, 0.08, 0)
-    loopL.rotation.x = Math.PI / 2      // tegakkan gelung supaya berdiri, bukan mendatar
-    loopL.rotation.z = Math.PI / 7      // condong sedikit ke atas
-    loopL.rotation.y = -Math.PI / 3     // kipas ke kiri
+    const extrudeSettings = { depth: 0.05, bevelEnabled: false }
+    const loopGeoL = new THREE.ExtrudeGeometry(createLoopShape(-1), extrudeSettings)
+    loopGeoL.translate(0, 0, -extrudeSettings.depth / 2)
+    const loopGeoR = new THREE.ExtrudeGeometry(createLoopShape(1), extrudeSettings)
+    loopGeoR.translate(0, 0, -extrudeSettings.depth / 2)
+    
+    const loopL = new THREE.Mesh(loopGeoL, ribbonMat)
+    loopL.position.set(-0.04, 0.02, 0)
+    loopL.rotation.y = -Math.PI / 6   // kipas ke kiri
+    loopL.rotation.z = Math.PI / 9    // condongkan hujung ke atas-kiri
     bowGroup.add(loopL)
     
-    const loopR = new THREE.Mesh(loopGeo, ribbonMat)
-    loopR.position.set(0.16, 0.08, 0)
-    loopR.rotation.x = Math.PI / 2
-    loopR.rotation.z = -Math.PI / 7
-    loopR.rotation.y = Math.PI / 3      // kipas ke kanan (bayangan cermin bagi loopL)
+    const loopR = new THREE.Mesh(loopGeoR, ribbonMat)
+    loopR.position.set(0.04, 0.02, 0)
+    loopR.rotation.y = Math.PI / 6    // kipas ke kanan (bayangan cermin loopL)
+    loopR.rotation.z = -Math.PI / 9   // condongkan hujung ke atas-kanan
     bowGroup.add(loopR)
     
     // ekor reben - dua jalur nipis condong ke bawah & ke luar dari pusat, hujung dipotong serong
