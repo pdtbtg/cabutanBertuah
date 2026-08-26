@@ -780,7 +780,7 @@
           const scale = b.finalScale * (1 + (CONFIG.winnerPreBurstScaleMult - 1) * eased)
           b.group.scale.setScalar(scale)
           b.group.position.x += (0 - b.group.position.x) * Math.min(1, dt * 2.2) * eased
-          b.group.position.z += (2.4 - b.group.position.z) * Math.min(1, dt * 2.2) * eased
+          b.group.position.z += (5 - b.group.position.z) * Math.min(1, dt * 2.2) * eased
           if (b.group.userData.material) {
             b.group.userData.material.emissiveIntensity = CONFIG.winnerPreBurstEmissive * eased
           }
