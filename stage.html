@@ -405,7 +405,7 @@
      ============================================================ */
   function createBalloonMesh(colorHex) {
     const group = new THREE.Group()
-
+  
     const bodyGeo = new THREE.SphereGeometry(1, 28, 22)
     bodyGeo.scale(1, 1.22, 1)
     const bodyMat = new THREE.MeshStandardMaterial({
@@ -415,18 +415,18 @@
     const body = new THREE.Mesh(bodyGeo, bodyMat)
     body.position.y = 1.22
     group.add(body)
-
+  
     const knot = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.24, 12), bodyMat)
     knot.rotation.x = Math.PI
     knot.position.y = -0.02
     group.add(knot)
-
+  
     const stringGeo = new THREE.BufferGeometry().setFromPoints([
       new THREE.Vector3(0, -0.1, 0), new THREE.Vector3(0, -1.8, 0),
     ])
     const stringMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.4 })
     group.add(new THREE.Line(stringGeo, stringMat))
-
+  
     group.userData.material = bodyMat
     return group
   }
@@ -765,9 +765,11 @@
     // 'winner': kekal begini sehingga cabutan seterusnya (startDraw() akan reset)
   }
 
-  // pemisahan optik ringkas: semak setiap pasangan belon yang sedang di udara, dan jika
-  // "jejari" kedua-duanya bertindih, tolak kedua-dua belon menjauhi antara satu sama lain
-  // mengikut nisbah saiz (finalScale dijadikan proksi jisim - belon lebih besar kurang tertolak)
+  // jejari kolisi berkesan untuk sekeping belon (termasuk papan nama, bukan sekadar badan bulat) -
+  // papan nama (sprite) lebih lebar (2.7 unit) daripada badan belon (jejari ~1), jadi jika kolisi
+  // hanya kira badan, papan nama masih boleh "menembusi" belon jiran secara optik
+  const SPRITE_HALF_WIDTH = 1.35 // separuh lebar sprite (scale.x 2.7 / 2)
+  
   function resolveBalloonCollisions(dt) {
     const pushRate = Math.min(1, dt * CONFIG.balloonSeparationStrength)
     for (let i = 0; i < activeBalloons.length; i++) {
@@ -778,9 +780,13 @@
         const dy = b.group.position.y - a.group.position.y
         const dz = b.group.position.z - a.group.position.z
         const distSq = dx * dx + dy * dy + dz * dz
-        const minDist = a.finalScale + b.finalScale + CONFIG.balloonSeparationMargin
+  
+        // jejari berkesan = jejari badan ATAU separuh lebar sprite, ambil yang lebih besar
+        const aRadius = Math.max(a.finalScale, SPRITE_HALF_WIDTH * a.finalScale)
+        const bRadius = Math.max(b.finalScale, SPRITE_HALF_WIDTH * b.finalScale)
+        const minDist = aRadius + bRadius + CONFIG.balloonSeparationMargin
         if (distSq >= minDist * minDist || distSq < 0.0001) continue
-
+  
         const dist = Math.sqrt(distSq)
         const overlap = (minDist - dist) * pushRate
         const nx = dx / dist
@@ -788,9 +794,9 @@
         const totalMass = a.finalScale + b.finalScale
         const pushA = overlap * (b.finalScale / totalMass)
         const pushB = overlap * (a.finalScale / totalMass)
-
+  
         a.group.position.x -= nx * pushA
-        a.group.position.y -= ny * pushA * 0.4 // kurangkan kesan menegak supaya kenaikan belon tak terlalu terganggu
+        a.group.position.y -= ny * pushA * 0.4
         b.group.position.x += nx * pushB
         b.group.position.y += ny * pushB * 0.4
       }
