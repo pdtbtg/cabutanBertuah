@@ -50,7 +50,7 @@
     letter-spacing: 0.12em;
   }
   .stage-brand-bar .eyebrow-sub {
-    font-size: 1.9dvh;
+    font-size: 2.9dvh;
     opacity: 0.92;
   }
 
@@ -440,7 +440,10 @@
 
     const texture = new THREE.CanvasTexture(canvas)
     texture.minFilter = THREE.LinearFilter
-    const mat = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false })
+    const mat = new THREE.SpriteMaterial({
+      map: texture, transparent: true,
+      depthWrite: true, depthTest: true, alphaTest: 0.5,
+    })
     const sprite = new THREE.Sprite(mat)
     sprite.scale.set(2.7, 0.9, 1)
     return sprite
