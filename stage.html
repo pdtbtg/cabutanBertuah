@@ -304,9 +304,9 @@
   const dirLight = new THREE.DirectionalLight(0xffffff, 0.65)
   dirLight.position.set(4, 10, 8)
   scene.add(dirLight)
-  //const boxSpot = new THREE.PointLight(0xffcc00, 3.5, 10)
-  //boxSpot.position.set(0, 2.5, 4)
-  //scene.add(boxSpot)
+  const boxSpot = new THREE.PointLight(0xffcc00, 4, 14, 2)
+  boxSpot.position.set(0, 3.2, 4.5)
+  scene.add(boxSpot)
 
   // Lampu sorot ringkas untuk detik belon pemenang pecah (kilasan pantas, tidak menggerakkan belon)
   const spotLight = new THREE.SpotLight(0xfff3c4, 0, 30, Math.PI / 6, 0.6, 1.2)
@@ -387,6 +387,13 @@
     ])
     body.position.y = bh / 2
     group.add(body)
+    const glowShellMat = new THREE.MeshBasicMaterial({
+      color: 0xffcc00, transparent: true, opacity: 0.4,
+      side: THREE.BackSide, blending: THREE.AdditiveBlending, depthWrite: false,
+    })
+    const bodyGlowShell = new THREE.Mesh(body.geometry, glowShellMat)
+    bodyGlowShell.scale.set(1.07, 1.07, 1.07)
+    body.add(bodyGlowShell)
   
     const ribbonV = new THREE.Mesh(new THREE.BoxGeometry(bw * 0.15, bh - 0.02, bd + 0.02), ribbonMat)
     ribbonV.position.y = bh / 2 - 0.01
@@ -429,6 +436,32 @@
   
     return { group, lidPivot, bodyTopY: bh, bodyMat }
   }
+
+  function createGlowSprite(hexColor, size) {
+    const canvas = document.createElement('canvas')
+    canvas.width = 256; canvas.height = 256
+    const ctx = canvas.getContext('2d')
+    const grad = ctx.createRadialGradient(128, 128, 0, 128, 128, 128)
+    grad.addColorStop(0, 'rgba(255,204,0,0.85)')
+    grad.addColorStop(0.45, 'rgba(255,204,0,0.3)')
+    grad.addColorStop(1, 'rgba(255,204,0,0)')
+    ctx.fillStyle = grad
+    ctx.fillRect(0, 0, 256, 256)
+    const texture = new THREE.CanvasTexture(canvas)
+    const mat = new THREE.SpriteMaterial({
+      map: texture, transparent: true, depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    })
+    const sprite = new THREE.Sprite(mat)
+    sprite.scale.set(size, size, 1)
+    return sprite
+  }
+  
+  const boxGlow = createGlowSprite(0xffcc00, 10)
+  boxGlow.position.copy(BOX_BASE_POSITION)
+  boxGlow.position.y += 1.2
+  boxGlow.position.z -= 0.5
+  scene.add(boxGlow)
 
   const giftBox = createGiftBoxMesh(0xf8f4e8)
   giftBox.group.position.copy(BOX_BASE_POSITION)
@@ -784,6 +817,7 @@
       const s = CONFIG.shakeStrength * shakeT
       giftBox.group.position.x = boxRestPosition.x + (cryptoRandomFloat() - 0.5) * s
       giftBox.group.rotation.z = boxRestRotationZ + (cryptoRandomFloat() - 0.5) * s * 0.6
+      giftBox.bodyGlowShell.material.opacity = 0.4 + (1 - shakeT) * 0.5
       if (shakeTimer <= 0) {
         giftBox.group.position.copy(boxRestPosition)
         giftBox.group.rotation.set(0, 0, boxRestRotationZ)
@@ -877,7 +911,9 @@
     updateBalloons(now, dt)
     resolveBalloonCollisions(dt)
     updateConfetti(dt)
-
+    // nafas cahaya keemasan pada kotak - buat ia sentiasa hidup & menonjol
+    boxSpot.intensity = 3.2 + Math.sin(now / 600) * 1.4
+    boxGlow.material.opacity = 0.55 + Math.sin(now / 600) * 0.2
     // kilasan lampu sorot pantas semasa detik belon pemenang pecah
     if (now < spotPulseUntil) {
       const remain = (spotPulseUntil - now) / 900
