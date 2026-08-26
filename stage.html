@@ -369,18 +369,45 @@
     lidRibbonH.position.set(0, lidH / 2 + 0.005, bd * 0.54)
     lidPivot.add(lidRibbonH)
   
-    const knot = new THREE.Mesh(new THREE.SphereGeometry(0.24, 14, 12), ribbonMat)
-    knot.position.set(0, lidH + 0.06, bd * 0.54)
-    lidPivot.add(knot)
-    const loopGeo = new THREE.TorusGeometry(0.27, 0.1, 8, 16)
+    const bowGroup = new THREE.Group()
+    bowGroup.position.set(0, lidH + 0.05, bd * 0.54)
+    lidPivot.add(bowGroup)
+    
+    const loopGeo = new THREE.TorusGeometry(0.24, 0.065, 10, 24, Math.PI * 1.5) // gelung terbuka (270°)
+    loopGeo.scale(1, 0.45, 1) // pipihkan jadi rupa reben rata
+    
     const loopL = new THREE.Mesh(loopGeo, ribbonMat)
-    loopL.position.set(-0.27, lidH + 0.06, bd * 0.54)
-    loopL.rotation.y = Math.PI / 2.3
-    lidPivot.add(loopL)
+    loopL.position.set(-0.16, 0.08, 0)
+    loopL.rotation.x = Math.PI / 2      // tegakkan gelung supaya berdiri, bukan mendatar
+    loopL.rotation.z = Math.PI / 7      // condong sedikit ke atas
+    loopL.rotation.y = -Math.PI / 3     // kipas ke kiri
+    bowGroup.add(loopL)
+    
     const loopR = new THREE.Mesh(loopGeo, ribbonMat)
-    loopR.position.set(0.27, lidH + 0.06, bd * 0.54)
-    loopR.rotation.y = -Math.PI / 2.3
-    lidPivot.add(loopR)
+    loopR.position.set(0.16, 0.08, 0)
+    loopR.rotation.x = Math.PI / 2
+    loopR.rotation.z = -Math.PI / 7
+    loopR.rotation.y = Math.PI / 3      // kipas ke kanan (bayangan cermin bagi loopL)
+    bowGroup.add(loopR)
+    
+    // ekor reben - dua jalur nipis condong ke bawah & ke luar dari pusat, hujung dipotong serong
+    const tailGeo = new THREE.BoxGeometry(0.11, 0.32, 0.045)
+    const tailL = new THREE.Mesh(tailGeo, ribbonMat)
+    tailL.position.set(-0.1, -0.16, 0.02)
+    tailL.rotation.z = Math.PI / 9
+    bowGroup.add(tailL)
+    
+    const tailR = new THREE.Mesh(tailGeo, ribbonMat)
+    tailR.position.set(0.1, -0.16, -0.02)
+    tailR.rotation.z = -Math.PI / 9
+    bowGroup.add(tailR)
+    
+    // simpul tengah - kekal guna sfera kecil, tapi lebih kecil & rata supaya ia hanya menutup
+    // pangkal gelung/ekor, bukan menjadi objek dominan dalam bentuk bow
+    const knot = new THREE.Mesh(new THREE.SphereGeometry(0.13, 14, 12), ribbonMat)
+    knot.scale.set(1, 0.8, 0.85)
+    knot.position.set(0, 0.07, 0.02)
+    bowGroup.add(knot)
   
     return { group, lidPivot, bodyTopY: bh, bodyMat }
   }
