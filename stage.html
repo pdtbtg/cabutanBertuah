@@ -373,36 +373,20 @@
     bowGroup.position.set(0, lidH + 0.05, bd * 0.54)
     lidPivot.add(bowGroup)
     
-    // bina satu gelung reben sebagai tiub mengikut laluan lengkung (curve) - laluan bermula &
-    // berakhir dekat titik pangkal (pinch point di simpul), melengkung keluar lebar lepas tu
-    // pulang semula - inilah bentuk sebenar satu gelung reben terlipat
-    function createLoopCurve(sign) {
-      const pts = [
-        new THREE.Vector3(0, 0, 0),
-        new THREE.Vector3(sign * 0.06, 0.16, 0.03),
-        new THREE.Vector3(sign * 0.34, 0.34, 0.05),
-        new THREE.Vector3(sign * 0.40, 0.58, 0.01),
-        new THREE.Vector3(sign * 0.22, 0.70, -0.03),
-        new THREE.Vector3(sign * 0.02, 0.56, -0.04),
-        new THREE.Vector3(sign * 0.05, 0.24, -0.01),
-        new THREE.Vector3(0, 0.02, 0),
-      ]
-      return new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.5)
-    }
-    
     function createLoopMesh(sign) {
-      const curve = createLoopCurve(sign)
-      const geo = new THREE.TubeGeometry(curve, 32, 0.075, 8, false)
-      geo.scale(1, 1, 0.35) // pipihkan supaya nampak macam jalur reben rata, bukan tiub bulat
-      return new THREE.Mesh(geo, ribbonMat)
+      const geo = new THREE.SphereGeometry(1, 16, 12)
+      geo.scale(0.34, 0.52, 0.14)  // pipihkan: nipis (z), memanjang ke atas (y), sederhana lebar (x)
+      geo.translate(0, 0.52, 0)    // anjak supaya pangkal sempit berada di titik asal (0,0) - titik pinch
+      const mesh = new THREE.Mesh(geo, ribbonMat)
+      mesh.rotation.z = sign * (Math.PI / 6.5)  // kipas keluar - satu paksi sahaja
+      mesh.position.set(sign * 0.02, 0, 0)
+      return mesh
     }
     
     const loopL = createLoopMesh(-1)
-    loopL.position.set(0, 0, 0)
     bowGroup.add(loopL)
     
     const loopR = createLoopMesh(1)
-    loopR.position.set(0, 0, 0)
     bowGroup.add(loopR)
     
     // ekor reben - dua jalur nipis condong ke bawah & ke luar dari pusat, hujung dipotong serong
