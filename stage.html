@@ -18,7 +18,7 @@
     height: 100dvh;
     margin: 0;
     overflow: hidden;
-    background: url('assets/background.webp') right center / auto 100% no-repeat #0a0a0a;
+    background: url('assets/background.webp') center center / cover no-repeat;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
 
@@ -195,6 +195,10 @@
     winnerPreBurstGrowMs: 1000,     // tempoh pengembangan sebelum pecah
     winnerPreBurstScaleMult: 2.6,   // gandaan saiz tambahan semasa mengembang (berbanding finalScale)
     winnerPreBurstEmissive: 0.9,    // keamatan cahaya (glow) semasa belon mengembang, untuk buat ia lebih menonjol
+
+    // pemisahan optik antara belon supaya tidak saling bertindih/masuk ke dalam satu sama lain
+    balloonSeparationMargin: 0.18,   // jarak tambahan (unit dunia) antara jejari dua belon
+    balloonSeparationStrength: 10,   // kelajuan pembetulan jarak (semakin besar = semakin cepat menolak)
   }
 
   const el = {
@@ -378,7 +382,7 @@
     const bodyGeo = new THREE.SphereGeometry(1, 28, 22)
     bodyGeo.scale(1, 1.22, 1)
     const bodyMat = new THREE.MeshStandardMaterial({
-      color: colorHex, roughness: 0.28, metalness: 0.05,
+      color: colorHex, roughness: 0.28, metalness: 0.05, transparent: true, opacity: 1,
       emissive: colorHex, emissiveIntensity: 0,
     })
     const body = new THREE.Mesh(bodyGeo, bodyMat)
@@ -729,6 +733,37 @@
     // 'winner': kekal begini sehingga cabutan seterusnya (startDraw() akan reset)
   }
 
+  // pemisahan optik ringkas: semak setiap pasangan belon yang sedang di udara, dan jika
+  // "jejari" kedua-duanya bertindih, tolak kedua-dua belon menjauhi antara satu sama lain
+  // mengikut nisbah saiz (finalScale dijadikan proksi jisim - belon lebih besar kurang tertolak)
+  function resolveBalloonCollisions(dt) {
+    const pushRate = Math.min(1, dt * CONFIG.balloonSeparationStrength)
+    for (let i = 0; i < activeBalloons.length; i++) {
+      const a = activeBalloons[i]
+      for (let j = i + 1; j < activeBalloons.length; j++) {
+        const b = activeBalloons[j]
+        const dx = b.group.position.x - a.group.position.x
+        const dy = b.group.position.y - a.group.position.y
+        const distSq = dx * dx + dy * dy
+        const minDist = a.finalScale + b.finalScale + CONFIG.balloonSeparationMargin
+        if (distSq >= minDist * minDist || distSq < 0.0001) continue
+
+        const dist = Math.sqrt(distSq)
+        const overlap = (minDist - dist) * pushRate
+        const nx = dx / dist
+        const ny = dy / dist
+        const totalMass = a.finalScale + b.finalScale
+        const pushA = overlap * (b.finalScale / totalMass)
+        const pushB = overlap * (a.finalScale / totalMass)
+
+        a.group.position.x -= nx * pushA
+        a.group.position.y -= ny * pushA * 0.4 // kurangkan kesan menegak supaya kenaikan belon tak terlalu terganggu
+        b.group.position.x += nx * pushB
+        b.group.position.y += ny * pushB * 0.4
+      }
+    }
+  }
+
   /* ============================================================
      GELUNG RENDER
      ============================================================ */
@@ -744,6 +779,7 @@
 
     updatePhases(now, dt)
     updateBalloons(now, dt)
+    resolveBalloonCollisions(dt)
     updateConfetti(dt)
 
     // kilasan lampu sorot pantas semasa detik belon pemenang pecah
