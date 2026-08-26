@@ -283,7 +283,7 @@
      ============================================================ */
   const scene = new THREE.Scene()
   const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100)
-  const BOX_BASE_POSITION = new THREE.Vector3(0, 0, 0)
+  const BOX_BASE_POSITION = new THREE.Vector3(0, -0.3, 1.5)
   camera.position.set(0, 6, 17)
   camera.lookAt(0, 6, 0)
 
@@ -304,6 +304,9 @@
   const dirLight = new THREE.DirectionalLight(0xffffff, 0.65)
   dirLight.position.set(4, 10, 8)
   scene.add(dirLight)
+  const boxSpot = new THREE.PointLight(0xffcc00, 3.5, 10)
+  boxSpot.position.set(0, 2.5, 4)
+  scene.add(boxSpot)
 
   // Lampu sorot ringkas untuk detik belon pemenang pecah (kilasan pantas, tidak menggerakkan belon)
   const spotLight = new THREE.SpotLight(0xfff3c4, 0, 30, Math.PI / 6, 0.6, 1.2)
@@ -367,12 +370,12 @@
   }
   function createGiftBoxMesh(bodyColor, interiorColor = 0x0d0e12) {
     const group = new THREE.Group()
-    const bw = 2.7, bh = 1.75, bd = 2.7, lidH = 0.48
+    const bw = 3.6, bh = 2.35, bd = 3.6, lidH = 0.60
   
     const bodyMat = new THREE.MeshStandardMaterial({ color: bodyColor, roughness: 0.32, metalness: 0.12 })
     const interiorMat = new THREE.MeshStandardMaterial({ color: interiorColor, roughness: 0.9, metalness: 0 })
     const ribbonMat = new THREE.MeshStandardMaterial({
-      color: 0xffcc00,
+      color: 0xd4af37,
       roughness: 0.45,
       metalness: 0.0,
     })
@@ -427,7 +430,7 @@
     return { group, lidPivot, bodyTopY: bh, bodyMat }
   }
 
-  const giftBox = createGiftBoxMesh(0xeaf2ff)
+  const giftBox = createGiftBoxMesh(0xf5f1e6)
   giftBox.group.position.copy(BOX_BASE_POSITION)
   scene.add(giftBox.group)
   const boxRestPosition = giftBox.group.position.clone()
