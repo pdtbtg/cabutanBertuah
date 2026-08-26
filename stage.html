@@ -35,7 +35,7 @@
     padding: 1.6dvh 3vw;
     text-align: center;
     color: rgba(255,255,255,0.85);
-    z-index: 10;
+    z-index: 30;
   }
   .stage-brand-bar .eyebrow {
     font-size: 1.8vw;
@@ -55,19 +55,8 @@
     position: fixed;
     top: 0; left: 0; right: 0;
     height: 5px;
-    z-index: 11;
+    z-index: 31;
     background: linear-gradient(90deg, var(--jg-red) 0%, var(--jg-red) 33%, var(--jg-gold) 33%, var(--jg-gold) 66%, var(--jg-blue-light) 66%, var(--jg-blue-light) 100%);
-  }
-
-  #stage {
-    height: 100dvh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 4dvh 4vw;
-    text-align: center;
-    position: relative;
   }
 
   /* faint corner watermark star, echoing the brand panel on the registration page */
@@ -82,6 +71,39 @@
     pointer-events: none;
   }
 
+  #stage {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ---------------- Three.js canvas, fills the stage behind all overlays ---------------- */
+  #three-canvas {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    display: block;
+  }
+
+  /* Radial vignette used to fake a stage spotlight darkening the surroundings */
+  #vignette {
+    position: fixed;
+    inset: 0;
+    z-index: 5;
+    pointer-events: none;
+    opacity: 0;
+    background: radial-gradient(circle at 50% 58%, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 22%, rgba(1,0,40,0.86) 72%);
+    transition: opacity 0.4s linear;
+  }
+
+  /* ---------------- Idle view ---------------- */
+  #idleView {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+  }
   .idle-mark {
     width: 70px;
     height: 70px;
@@ -106,51 +128,62 @@
     letter-spacing: 0.04em;
   }
 
-  .name-display {
-    color: #fff;
-    font-size: 8dvh;
-    font-weight: 800;
-    line-height: 1.2;
-    max-width: 90vw;
-    word-break: break-word;
-    transition: transform 0.08s ease;
-  }
-  .name-display.spinning {
-    color: rgba(255,255,255,0.85);
-  }
-  .prize-label {
+  /* ---------------- Prize label, floats above the 3D scene during a draw ---------------- */
+  #prizeOverlay {
+    position: fixed;
+    top: 13dvh;
+    left: 0;
+    right: 0;
+    z-index: 20;
+    text-align: center;
     color: var(--jg-gold);
     font-size: 3dvh;
     font-weight: 700;
-    margin-bottom: 2dvh;
     letter-spacing: 0.08em;
     text-transform: uppercase;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
   }
-  .winner-frame {
-    border: 2px solid rgba(255, 204, 0, 0.55);
-    border-radius: 24px;
-    padding: 5dvh 6vw;
-    background: rgba(255, 255, 255, 0.04);
-    backdrop-filter: blur(2px);
+  #prizeOverlay.visible { opacity: 1; }
+
+  /* ---------------- Winner name + MyKad, fades in once the balloon pops ---------------- */
+  #winnerOverlay {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 9dvh;
+    z-index: 20;
+    text-align: center;
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
+    transition: opacity 0.7s ease, transform 0.7s cubic-bezier(.2,.9,.3,1.3);
+    pointer-events: none;
+  }
+  #winnerOverlay.visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
   .winner-badge {
-    font-size: 6dvh;
-    margin-bottom: 1dvh;
+    font-size: 5dvh;
+    margin-bottom: 0.5dvh;
+  }
+  .winner-name {
+    color: #fff;
+    font-size: 6.4dvh;
+    font-weight: 800;
+    line-height: 1.15;
+    max-width: 90vw;
+    margin: 0 auto;
+    word-break: break-word;
+    text-shadow: 0 2px 24px rgba(255,204,0,0.35);
   }
   .winner-mykad {
-    color: rgba(255,255,255,0.7);
-    font-size: 3.2dvh;
+    color: rgba(255,255,255,0.72);
+    font-size: 3dvh;
     font-weight: 600;
     letter-spacing: 0.06em;
-    margin-top: 1dvh;
-  }
-  .confetti-burst {
-    animation: pop 0.5s ease;
-  }
-  @keyframes pop {
-    0% { transform: scale(0.7); opacity: 0; }
-    60% { transform: scale(1.1); }
-    100% { transform: scale(1); opacity: 1; }
+    margin-top: 1.2dvh;
   }
 </style>
 </head>
@@ -163,50 +196,73 @@
   <span class="eyebrow">Daerah Bentong 2026</span>
 </div>
 
+<canvas id="three-canvas"></canvas>
+<div id="vignette"></div>
+
+<div id="prizeOverlay"></div>
+
 <div id="stage">
   <div id="idleView">
     <div class="idle-mark"></div>
     <div class="idle-text">Menunggu cabutan seterusnya...</div>
   </div>
-
-  <div id="spinView" style="display:none;">
-    <div class="prize-label" id="prizeLabel"></div>
-    <div class="name-display spinning" id="nameDisplay">-</div>
-  </div>
-
-  <div id="winnerView" style="display:none;">
-    <div class="winner-frame">
-      <!-- <div class="prize-label" id="winnerPrizeLabel"></div> -->
-      <div class="winner-badge">🏆</div>
-      <div class="name-display confetti-burst" id="winnerNameDisplay"></div>
-      <div class="winner-mykad" id="winnerMykadDisplay"></div>
-    </div>
-  </div>
 </div>
+
+<div id="winnerOverlay">
+  <div class="winner-badge">🏆</div>
+  <div class="winner-name" id="winnerNameDisplay"></div>
+  <div class="winner-mykad" id="winnerMykadDisplay"></div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+  }
+}
+</script>
 
 <script type="module">
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
+  import * as THREE from 'three'
 
+  /* ============================================================
+     KONFIGURASI - boleh ubah suai di sini sahaja
+     ============================================================ */
+  const CONFIG = {
+    balloonCount: 50,
+    // nisbah fasa animasi (jumlah mesti = 1.0), dikira daripada payload.duration
+    phaseRatio: {
+      rise: 0.24,        // 50 belon naik hampir serentak
+      eliminate: 0.36,   // 49 belon terbang keluar skrin
+      center: 0.14,      // 1 belon terakhir bergerak ke tengah
+      spotlight: 0.11,   // lampu sorot fokus
+      pop: 0.15          // POP + kotak hadiah + nama pemenang muncul
+    },
+    defaultDuration: 9000, // ms, digunakan jika payload tidak sertakan 'duration'
+    riseStaggerMs: 450,    // sebaran kecil supaya belon tidak naik 100% serentak (nampak lebih semula jadi)
+    colors: [0xffcc00, 0xcc0001, 0x1a2a8f, 0xffffff, 0x2ea16b, 0x8a2be2, 0xff7a1a],
+  }
+
+  const el = {
+    idleView: document.getElementById('idleView'),
+    prizeOverlay: document.getElementById('prizeOverlay'),
+    winnerOverlay: document.getElementById('winnerOverlay'),
+    winnerName: document.getElementById('winnerNameDisplay'),
+    winnerMykad: document.getElementById('winnerMykadDisplay'),
+    vignette: document.getElementById('vignette'),
+    canvas: document.getElementById('three-canvas'),
+  }
+
+  /* ============================================================
+     SUPABASE REALTIME (kekal sama seperti sebelum ini)
+     ============================================================ */
   const SUPABASE_URL = 'https://brcxlubmlymtpiwbjwez.supabase.co'
   const SUPABASE_ANON_KEY = 'sb_publishable_VX22OseUPH_DdPN_jasgWA_1Vtwg4u9'
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-
   const stageChannel = supabase.channel('cabutan-stage')
 
-  const idleView = document.getElementById('idleView')
-  const spinView = document.getElementById('spinView')
-  const winnerView = document.getElementById('winnerView')
-  const nameDisplay = document.getElementById('nameDisplay')
-  const prizeLabel = document.getElementById('prizeLabel')
-  const winnerPrizeLabel = document.getElementById('winnerPrizeLabel')
-  const winnerNameDisplay = document.getElementById('winnerNameDisplay')
-  const winnerMykadDisplay = document.getElementById('winnerMykadDisplay')
-
   let candidatePool = []
-
-  function randomFrom(arr) {
-    return arr[Math.floor(Math.random() * arr.length)]
-  }
 
   // Mask a MyKad number, showing only the last 4 digits, e.g. (********5481)
   function maskMykad(mykad) {
@@ -217,59 +273,526 @@
     return `(${'*'.repeat(digits.length - 4)}${last4})`
   }
 
-  function showIdle() {
-    idleView.style.display = 'block'
-    spinView.style.display = 'none'
-    winnerView.style.display = 'none'
-  }
-
-  function showSpin(prizeName) {
-    idleView.style.display = 'none'
-    spinView.style.display = 'block'
-    winnerView.style.display = 'none'
-    prizeLabel.textContent = prizeName || ''
-  }
-
-  function showWinner(name, prizeName, winnerMykad) {
-    idleView.style.display = 'none'
-    spinView.style.display = 'none'
-    winnerView.style.display = 'block'
-    if (winnerPrizeLabel) winnerPrizeLabel.textContent = prizeName || ''
-    winnerNameDisplay.textContent = name
-    winnerMykadDisplay.textContent = maskMykad(winnerMykad)
-  }
-
-  function runSpinAnimation({ names, winnerName, winnerMykad, prizeName, duration }) {
-    const pool = names && names.length > 0 ? names : candidatePool
-    showSpin(prizeName)
-
-    let elapsed = 0
-    let interval = 50
-
-    function tick() {
-      if (elapsed >= duration) {
-        showWinner(winnerName, prizeName, winnerMykad)
-        return
-      }
-      nameDisplay.textContent = randomFrom(pool.length ? pool : [winnerName])
-      elapsed += interval
-      if (elapsed > duration * 0.6) interval = 140
-      if (elapsed > duration * 0.85) interval = 280
-      setTimeout(tick, interval)
-    }
-    tick()
-  }
-
   stageChannel
     .on('broadcast', { event: 'update-pool' }, ({ payload }) => {
       candidatePool = payload.names || []
     })
     .on('broadcast', { event: 'spin' }, ({ payload }) => {
-      runSpinAnimation(payload)
+      startDraw(payload)
     })
     .subscribe()
 
-  showIdle()
+  /* ============================================================
+     RANDOM SELECTION - crypto.getRandomValues()
+     Digunakan untuk memilih & menyusun belon secara tidak boleh diramal
+     (pemenang sebenar tetap ditentukan oleh operator/DB, ini hanya untuk
+     paparan visual: warna, kedudukan, dan susunan nama pada 50 belon)
+     ============================================================ */
+  function cryptoRandomInt(maxExclusive) {
+    const arr = new Uint32Array(1)
+    crypto.getRandomValues(arr)
+    return arr[0] % maxExclusive
+  }
+  function cryptoRandomFloat() {
+    const arr = new Uint32Array(1)
+    crypto.getRandomValues(arr)
+    return arr[0] / 4294967296
+  }
+  function cryptoShuffle(array) {
+    const a = array.slice()
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = cryptoRandomInt(i + 1)
+      ;[a[i], a[j]] = [a[j], a[i]]
+    }
+    return a
+  }
+
+  /* ============================================================
+     THREE.JS - persediaan asas
+     ============================================================ */
+  const scene = new THREE.Scene()
+  const camera = new THREE.PerspectiveCamera(48, window.innerWidth / window.innerHeight, 0.1, 100)
+  camera.position.set(0, 3.4, 20)
+  camera.lookAt(0, 4.5, 0)
+
+  const renderer = new THREE.WebGLRenderer({ canvas: el.canvas, antialias: true, alpha: true })
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+  renderer.setSize(window.innerWidth, window.innerHeight)
+  renderer.setClearColor(0x000000, 0) // background CSS gradient shows through
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight
+    camera.updateProjectionMatrix()
+    renderer.setSize(window.innerWidth, window.innerHeight)
+  })
+
+  // Pencahayaan am
+  const hemi = new THREE.HemisphereLight(0xffe9a8, 0x0a0a3a, 0.9)
+  scene.add(hemi)
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.7)
+  dirLight.position.set(4, 10, 8)
+  scene.add(dirLight)
+
+  // Lampu sorot (spotlight) untuk detik pendedahan pemenang
+  const spotLight = new THREE.SpotLight(0xfff3c4, 0, 40, Math.PI / 9, 0.45, 1.2)
+  spotLight.position.set(0, 16, 10)
+  const spotTarget = new THREE.Object3D()
+  scene.add(spotTarget)
+  spotLight.target = spotTarget
+  scene.add(spotLight)
+
+  // Kon cahaya beam visual (hiasan, tidak memberi cahaya sebenar - hanya kesan visual sinar)
+  const beamGeo = new THREE.ConeGeometry(3.2, 13, 32, 1, true)
+  const beamMat = new THREE.MeshBasicMaterial({
+    color: 0xfff3c4, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false,
+  })
+  const beam = new THREE.Mesh(beamGeo, beamMat)
+  beam.position.set(0, 12.5, 9)
+  beam.rotation.x = Math.PI
+  scene.add(beam)
+
+  /* ============================================================
+     BELON (Three.js Geometry)
+     ============================================================ */
+  function createBalloonMesh(colorHex) {
+    const group = new THREE.Group()
+
+    const bodyGeo = new THREE.SphereGeometry(1, 28, 22)
+    bodyGeo.scale(1, 1.22, 1)
+    const bodyMat = new THREE.MeshStandardMaterial({
+      color: colorHex, roughness: 0.28, metalness: 0.05, transparent: true, opacity: 1,
+    })
+    const body = new THREE.Mesh(bodyGeo, bodyMat)
+    body.position.y = 1.22
+    group.add(body)
+
+    // ikatan (knot) di bawah belon
+    const knot = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.24, 12), bodyMat)
+    knot.rotation.x = Math.PI
+    knot.position.y = -0.02
+    group.add(knot)
+
+    // tali belon
+    const stringGeo = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(0, -0.1, 0), new THREE.Vector3(0, -1.8, 0),
+    ])
+    const stringMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.4 })
+    group.add(new THREE.Line(stringGeo, stringMat))
+
+    group.userData.material = bodyMat
+    return group
+  }
+
+  // Papan nama (CanvasTexture / Sprite) melekat pada setiap belon
+  function fitFontSize(ctx, text, maxWidth, baseSize) {
+    let size = baseSize
+    ctx.font = `bold ${size}px -apple-system, Segoe UI, Roboto, sans-serif`
+    while (ctx.measureText(text).width > maxWidth && size > 20) {
+      size -= 4
+      ctx.font = `bold ${size}px -apple-system, Segoe UI, Roboto, sans-serif`
+    }
+    return size
+  }
+
+  function createNameSprite(text) {
+    const canvas = document.createElement('canvas')
+    canvas.width = 512
+    canvas.height = 170
+    const ctx = canvas.getContext('2d')
+
+    ctx.fillStyle = 'rgba(255,255,255,0.94)'
+    const r = 30
+    ctx.beginPath()
+    ctx.moveTo(r, 6)
+    ctx.arcTo(506, 6, 506, 164, r)
+    ctx.arcTo(506, 164, 6, 164, r)
+    ctx.arcTo(6, 164, 6, 6, r)
+    ctx.arcTo(6, 6, 506, 6, r)
+    ctx.closePath()
+    ctx.fill()
+
+    ctx.fillStyle = '#010066'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    const size = fitFontSize(ctx, text, 460, 62)
+    ctx.font = `bold ${size}px -apple-system, Segoe UI, Roboto, sans-serif`
+    ctx.fillText(text, 256, 88)
+
+    const texture = new THREE.CanvasTexture(canvas)
+    texture.minFilter = THREE.LinearFilter
+    const mat = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false })
+    const sprite = new THREE.Sprite(mat)
+    sprite.scale.set(2.7, 0.9, 1)
+    return sprite
+  }
+
+  /* ============================================================
+     KOTAK HADIAH (Three.js Geometry, dengan lid berhinge sebenar)
+     ============================================================ */
+  function createGiftBoxMesh(bodyColor) {
+    const group = new THREE.Group()
+    const bw = 1.6, bh = 1.05, bd = 1.6, lidH = 0.3
+
+    const bodyMat = new THREE.MeshStandardMaterial({ color: bodyColor, roughness: 0.35, metalness: 0.15 })
+    const ribbonMat = new THREE.MeshStandardMaterial({ color: 0xffcc00, roughness: 0.3, metalness: 0.3 })
+
+    // badan kotak
+    const body = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, bd), bodyMat)
+    body.position.y = bh / 2
+    group.add(body)
+
+    // reben melilit badan (dua jalur bersilang)
+    const ribbonV = new THREE.Mesh(new THREE.BoxGeometry(bw * 0.15, bh + 0.02, bd + 0.02), ribbonMat)
+    ribbonV.position.y = bh / 2
+    group.add(ribbonV)
+    const ribbonH = new THREE.Mesh(new THREE.BoxGeometry(bw + 0.02, bh + 0.02, bd * 0.15), ribbonMat)
+    ribbonH.position.y = bh / 2
+    group.add(ribbonH)
+
+    // penutup (lid) - dipasang pada 'hinge' di tepi belakang supaya boleh berputar terbuka
+    const lidPivot = new THREE.Object3D()
+    lidPivot.position.set(0, bh, -bd / 2)
+    group.add(lidPivot)
+
+    const lid = new THREE.Mesh(new THREE.BoxGeometry(bw * 1.08, lidH, bd * 1.08), bodyMat)
+    lid.position.set(0, lidH / 2, bd * 0.54) // lanjut ke depan dari hinge, tutup seluruh atas kotak
+    lidPivot.add(lid)
+
+    const lidRibbon = new THREE.Mesh(new THREE.BoxGeometry(bw * 1.08, lidH + 0.02, bd * 0.16), ribbonMat)
+    lidRibbon.position.set(0, lidH / 2, bd * 0.54)
+    lidPivot.add(lidRibbon)
+
+    // reben pita (bow) di atas lid
+    const knot = new THREE.Mesh(new THREE.SphereGeometry(0.15, 14, 12), ribbonMat)
+    knot.position.set(0, lidH + 0.04, bd * 0.54)
+    lidPivot.add(knot)
+    const loopGeo = new THREE.TorusGeometry(0.17, 0.065, 8, 16)
+    const loopL = new THREE.Mesh(loopGeo, ribbonMat)
+    loopL.position.set(-0.17, lidH + 0.04, bd * 0.54)
+    loopL.rotation.y = Math.PI / 2.3
+    lidPivot.add(loopL)
+    const loopR = new THREE.Mesh(loopGeo, ribbonMat)
+    loopR.position.set(0.17, lidH + 0.04, bd * 0.54)
+    loopR.rotation.y = -Math.PI / 2.3
+    lidPivot.add(loopR)
+
+    return { group, lidPivot }
+  }
+
+  let giftBoxInstance = null
+  function spawnGiftBox(position, bodyColor) {
+    const { group, lidPivot } = createGiftBoxMesh(bodyColor)
+    group.scale.setScalar(0.0001)
+    group.position.copy(position)
+    group.position.y -= 0.55
+    scene.add(group)
+    return { group, lidPivot, secondaryBurstDone: false }
+  }
+
+  /* ============================================================
+     KONFETI (Three.js Points)
+     ============================================================ */
+  const activeConfetti = []
+  function spawnConfetti(position, count = 260) {
+    const positions = new Float32Array(count * 3)
+    const velocities = new Float32Array(count * 3)
+    const colors = new Float32Array(count * 3)
+    const palette = [
+      new THREE.Color(0xffcc00), new THREE.Color(0xcc0001),
+      new THREE.Color(0x8ea0ff), new THREE.Color(0xffffff),
+    ]
+    for (let i = 0; i < count; i++) {
+      positions[i * 3] = position.x
+      positions[i * 3 + 1] = position.y
+      positions[i * 3 + 2] = position.z
+
+      const speed = 4 + cryptoRandomFloat() * 6
+      const angle = cryptoRandomFloat() * Math.PI * 2
+      const upward = 3 + cryptoRandomFloat() * 5
+      velocities[i * 3] = Math.cos(angle) * speed
+      velocities[i * 3 + 1] = upward
+      velocities[i * 3 + 2] = Math.sin(angle) * speed
+
+      const c = palette[cryptoRandomInt(palette.length)]
+      colors[i * 3] = c.r; colors[i * 3 + 1] = c.g; colors[i * 3 + 2] = c.b
+    }
+    const geo = new THREE.BufferGeometry()
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+    const mat = new THREE.PointsMaterial({
+      size: 0.18, vertexColors: true, transparent: true, opacity: 1,
+      depthWrite: false, blending: THREE.AdditiveBlending,
+    })
+    const points = new THREE.Points(geo, mat)
+    points.userData = { velocities, life: 0, maxLife: 3.2 }
+    scene.add(points)
+    activeConfetti.push(points)
+  }
+
+  function updateConfetti(dt) {
+    for (let i = activeConfetti.length - 1; i >= 0; i--) {
+      const p = activeConfetti[i]
+      const pos = p.geometry.attributes.position.array
+      const vel = p.userData.velocities
+      for (let j = 0; j < pos.length; j += 3) {
+        vel[j + 1] -= 9.8 * dt // graviti
+        pos[j] += vel[j] * dt
+        pos[j + 1] += vel[j + 1] * dt
+        pos[j + 2] += vel[j + 2] * dt
+      }
+      p.geometry.attributes.position.needsUpdate = true
+      p.userData.life += dt
+      p.material.opacity = Math.max(0, 1 - p.userData.life / p.userData.maxLife)
+      if (p.userData.life >= p.userData.maxLife) {
+        scene.remove(p)
+        p.geometry.dispose()
+        p.material.dispose()
+        activeConfetti.splice(i, 1)
+      }
+    }
+  }
+
+  /* ============================================================
+     STATE MACHINE UTAMA CABUTAN
+     ============================================================ */
+  let balloons = []
+  let winnerBalloon = null
+  let state = 'idle' // idle | rising | eliminating | centering | spotlight | pop | winner
+  let phaseStartTime = 0
+  let phaseDurations = null
+  let currentWinnerMykad = ''
+
+  function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3) }
+  function easeInCubic(t) { return t * t * t }
+  function easeInOutCubic(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2 }
+  function clamp01(t) { return Math.min(1, Math.max(0, t)) }
+
+  function showPrizeOverlay(prizeName) {
+    el.prizeOverlay.textContent = prizeName || ''
+    el.prizeOverlay.classList.add('visible')
+  }
+
+  function showWinnerOverlay(name, mykad) {
+    el.winnerName.textContent = name
+    el.winnerMykad.textContent = maskMykad(mykad)
+    el.winnerOverlay.classList.add('visible')
+  }
+
+  function clearStage() {
+    balloons.forEach((b) => scene.remove(b.group))
+    balloons = []
+    winnerBalloon = null
+    if (giftBoxInstance) { scene.remove(giftBoxInstance.group); giftBoxInstance = null }
+    activeConfetti.forEach((p) => { scene.remove(p); p.geometry.dispose(); p.material.dispose() })
+    activeConfetti.length = 0
+    spotLight.intensity = 0
+    beamMat.opacity = 0
+    el.vignette.style.opacity = 0
+    el.winnerOverlay.classList.remove('visible')
+    el.prizeOverlay.classList.remove('visible')
+    hemi.intensity = 0.9
+    dirLight.intensity = 0.7
+  }
+
+  function pickDisplayNames(payload) {
+    const winnerName = payload.winnerName
+    const sourcePool = (payload.names && payload.names.length ? payload.names : candidatePool)
+      .filter((n) => n !== winnerName)
+    let others = cryptoShuffle(sourcePool).slice(0, CONFIG.balloonCount - 1)
+    let fillIndex = 1
+    while (others.length < CONFIG.balloonCount - 1) {
+      others.push(`Peserta ${fillIndex++}`)
+    }
+    return cryptoShuffle([...others, winnerName])
+  }
+
+  function startDraw(payload) {
+    clearStage()
+    el.idleView.style.display = 'none'
+    showPrizeOverlay(payload.prizeName)
+    currentWinnerMykad = payload.winnerMykad
+
+    const names = pickDisplayNames(payload)
+    const spreadX = 15
+    names.forEach((name, i) => {
+      const isWinner = name === payload.winnerName && !balloons.some((b) => b.isWinner)
+      const color = CONFIG.colors[cryptoRandomInt(CONFIG.colors.length)]
+      const group = createBalloonMesh(color)
+      const sprite = createNameSprite(name)
+      sprite.position.set(0, 2.0, 0.95)
+      group.add(sprite)
+
+      const x = (cryptoRandomFloat() * 2 - 1) * spreadX
+      const z = -cryptoRandomFloat() * 3.5
+      const startY = -9 - cryptoRandomFloat() * 3
+      group.position.set(x, startY, z)
+
+      const balloonData = {
+        group, name, isWinner, sprite,
+        baseX: x, startY, targetY: 5.6 + cryptoRandomFloat() * 1.2,
+        swaySeed: cryptoRandomFloat() * Math.PI * 2,
+        riseDelay: (i / names.length) * CONFIG.riseStaggerMs,
+        escapeDir: new THREE.Vector3(
+          (cryptoRandomFloat() - 0.5) * 2, 1 + cryptoRandomFloat(), (cryptoRandomFloat() - 0.5) * 2
+        ).normalize(),
+        escapeStagger: cryptoRandomFloat(),
+        opacity: 1,
+      }
+      scene.add(group)
+      balloons.push(balloonData)
+      if (isWinner) winnerBalloon = balloonData
+    })
+    // failsafe: if for some reason no winner flagged (shouldn't happen), promote the last balloon
+    if (!winnerBalloon) { winnerBalloon = balloons[balloons.length - 1]; winnerBalloon.isWinner = true }
+
+    const totalDuration = payload.duration || CONFIG.defaultDuration
+    phaseDurations = {
+      rise: totalDuration * CONFIG.phaseRatio.rise,
+      eliminate: totalDuration * CONFIG.phaseRatio.eliminate,
+      center: totalDuration * CONFIG.phaseRatio.center,
+      spotlight: totalDuration * CONFIG.phaseRatio.spotlight,
+      pop: totalDuration * CONFIG.phaseRatio.pop,
+    }
+    phaseStartTime = performance.now()
+    state = 'rising'
+  }
+
+  function updatePhases(now) {
+    if (state === 'idle' || state === 'winner') return
+    const elapsed = now - phaseStartTime
+
+    if (state === 'rising') {
+      const t = clamp01(elapsed / phaseDurations.rise)
+      balloons.forEach((b) => {
+        const localT = clamp01((elapsed - b.riseDelay) / (phaseDurations.rise - b.riseDelay || 1))
+        const eased = easeOutCubic(localT)
+        b.group.position.y = b.startY + (b.targetY - b.startY) * eased
+      })
+      if (elapsed >= phaseDurations.rise) {
+        phaseStartTime = now
+        state = 'eliminating'
+      }
+      return
+    }
+
+    if (state === 'eliminating') {
+      const t = clamp01(elapsed / phaseDurations.eliminate)
+      balloons.forEach((b) => {
+        if (b.isWinner) return
+        // setiap belon bukan pemenang keluar pada masa berbeza sedikit (suspense)
+        const localStart = b.escapeStagger * 0.55
+        const localT = clamp01((t - localStart) / (1 - localStart))
+        if (localT <= 0) return
+        const speed = 9 * localT
+        b.group.position.addScaledVector(b.escapeDir, speed * 0.02)
+        b.opacity = clamp01(1 - localT * 1.3)
+        b.group.userData.material.opacity = b.opacity
+        b.sprite.material.opacity = b.opacity
+      })
+      if (elapsed >= phaseDurations.eliminate) {
+        balloons = balloons.filter((b) => {
+          if (b.isWinner) return true
+          scene.remove(b.group)
+          return false
+        })
+        phaseStartTime = now
+        state = 'centering'
+      }
+      return
+    }
+
+    if (state === 'centering') {
+      const t = easeInOutCubic(clamp01(elapsed / phaseDurations.center))
+      const b = winnerBalloon
+      b.group.position.x = b.group.position.x + (0 - b.group.position.x) * t * 0.35
+      b.group.position.y = b.group.position.y + (6.4 - b.group.position.y) * t * 0.35
+      b.group.position.z = b.group.position.z + (5.5 - b.group.position.z) * t * 0.35
+      const scale = 1 + 0.18 * t
+      b.group.scale.setScalar(scale)
+      if (elapsed >= phaseDurations.center) {
+        phaseStartTime = now
+        state = 'spotlight'
+      }
+      return
+    }
+
+    if (state === 'spotlight') {
+      const t = clamp01(elapsed / phaseDurations.spotlight)
+      spotLight.intensity = 9 * t
+      spotTarget.position.copy(winnerBalloon.group.position)
+      beam.position.x = winnerBalloon.group.position.x
+      beam.position.z = winnerBalloon.group.position.z + 3.5
+      beamMat.opacity = 0.16 * t
+      hemi.intensity = 0.9 - 0.55 * t
+      dirLight.intensity = 0.7 - 0.5 * t
+      el.vignette.style.opacity = 0.75 * t
+      if (elapsed >= phaseDurations.spotlight) {
+        phaseStartTime = now
+        state = 'pop'
+      }
+      return
+    }
+
+    if (state === 'pop') {
+      const t = clamp01(elapsed / phaseDurations.pop)
+      const popT = clamp01(t / 0.2) // belon pop cepat di awal fasa
+      if (popT < 1) {
+        const s = Math.max(0.001, 1.18 * (1 - easeInCubic(popT)))
+        winnerBalloon.group.scale.setScalar(s)
+      } else if (winnerBalloon.group.parent) {
+        const popPos = winnerBalloon.group.position.clone()
+        const winnerColor = winnerBalloon.group.userData.material.color
+        scene.remove(winnerBalloon.group)
+        spawnConfetti(popPos, 220)
+        giftBoxInstance = spawnGiftBox(popPos, winnerColor)
+      }
+      if (giftBoxInstance) {
+        // fasa 1: kotak (masih tertutup) muncul & membesar
+        const appearT = clamp01((t - 0.2) / 0.22)
+        const scale = easeOutCubic(appearT) * 2.2
+        giftBoxInstance.group.scale.setScalar(Math.max(0.0001, scale))
+        giftBoxInstance.group.rotation.y += 0.015
+
+        // fasa 2: lid berputar terbuka pada hinge, + letupan konfeti kecil dari dalam kotak
+        const openT = clamp01((t - 0.44) / 0.4)
+        giftBoxInstance.lidPivot.rotation.x = -easeOutCubic(openT) * 2.05 // ~117 darjah
+        if (openT > 0.04 && !giftBoxInstance.secondaryBurstDone) {
+          giftBoxInstance.secondaryBurstDone = true
+          const burstPos = giftBoxInstance.group.position.clone()
+          burstPos.y += 1.1
+          spawnConfetti(burstPos, 130)
+        }
+      }
+      if (t > 0.5 && !el.winnerOverlay.classList.contains('visible')) {
+        showWinnerOverlay(winnerBalloon.name, currentWinnerMykad)
+      }
+      if (elapsed >= phaseDurations.pop) {
+        state = 'winner'
+      }
+    }
+  }
+
+  /* ============================================================
+     GELUNG RENDER
+     ============================================================ */
+  const clock = new THREE.Clock()
+  function animate() {
+    requestAnimationFrame(animate)
+    const dt = Math.min(clock.getDelta(), 0.05)
+    const now = performance.now()
+
+    // ayunan lembut untuk semua belon yang masih hidup
+    balloons.forEach((b) => {
+      if (state === 'rising' || state === 'eliminating') {
+        b.group.position.x += Math.sin(now / 500 + b.swaySeed) * 0.004
+      }
+    })
+
+    updateConfetti(dt)
+    updatePhases(now)
+    renderer.render(scene, camera)
+  }
+  animate()
 </script>
 
 </body>
