@@ -355,13 +355,17 @@
     lid.position.set(0, lidH / 2, bd * 0.54)
     lidPivot.add(lid)
   
-    // pita menegak (vertical) di atas lid - genap dengan pita menegak pada badan kotak
-    const lidRibbonV = new THREE.Mesh(new THREE.BoxGeometry(bw * 0.15, lidH * 1.02, bd * 1.08), ribbonMat)
+    // pita menegak (vertical) di atas lid - muka bawah guna interiorMat supaya bahagian dalam kekal hitam
+    const lidRibbonV = new THREE.Mesh(new THREE.BoxGeometry(bw * 0.15, lidH * 1.02, bd * 1.08), [
+      ribbonMat, ribbonMat, ribbonMat, interiorMat, ribbonMat, ribbonMat,
+    ])
     lidRibbonV.position.set(0, lidH / 2 + 0.005, bd * 0.54)
     lidPivot.add(lidRibbonV)
     
-    // pita melintang (horizontal) di atas lid - sudah wujud, kekalkan
-    const lidRibbonH = new THREE.Mesh(new THREE.BoxGeometry(bw * 1.08, lidH * 1.02, bd * 0.16), ribbonMat)
+    // pita melintang (horizontal) di atas lid - muka bawah guna interiorMat supaya bahagian dalam kekal hitam
+    const lidRibbonH = new THREE.Mesh(new THREE.BoxGeometry(bw * 1.08, lidH * 1.02, bd * 0.16), [
+      ribbonMat, ribbonMat, ribbonMat, interiorMat, ribbonMat, ribbonMat,
+    ])
     lidRibbonH.position.set(0, lidH / 2 + 0.005, bd * 0.54)
     lidPivot.add(lidRibbonH)
   
