@@ -2,12 +2,14 @@
 <html lang="ms">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="icon" href="assets/pahang.ico" type="image/x-icon">
-<title>Pendaftaran/Cabutan Bertuah</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<link rel="icon" href="assets/pahang.ico" type="image/x-icon">
+<title>Pendaftaran Cabutan Bertuah</title>
 
 <!-- Bootstrap 5 -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<!-- Bootstrap Icons -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 
 <style>
   :root {
@@ -17,6 +19,8 @@
     --jg-red: #cc0001;
     --jg-red-dark: #a30001;
     --jg-gold: #ffcc00;
+    --jg-gold-dark: #e0b400;
+    --ink-soft: #6b7280;
   }
 
   html, body {
@@ -24,11 +28,13 @@
     margin: 0;
   }
   body {
-    background: linear-gradient(135deg, var(--jg-blue) 0%, var(--jg-blue-light) 45%, var(--jg-red) 100%);
+    background: linear-gradient(160deg, var(--jg-blue) 0%, var(--jg-blue-light) 45%, var(--jg-red) 100%);
+    background-attachment: fixed;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-tap-highlight-color: transparent;
   }
 
-  /* ---------------- Page layout: title bar + centered card below it ---------------- */
+  /* ---------------- Page layout ---------------- */
   .page-wrap {
     display: flex;
     flex-direction: column;
@@ -42,26 +48,34 @@
     top: 0;
     z-index: 100;
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.35rem 0.6rem;
+    gap: 0.4rem;
     text-align: center;
-    font-weight: 800;
-    letter-spacing: 0.03em;
-    font-size: clamp(0.85rem, 2.2vw, 1.25rem);
     color: var(--jg-blue);
     background: #fff;
-    padding: 1.4dvh 4vw;
+    padding: 1.6dvh 5vw 1.3dvh;
     box-shadow: 0 2px 10px rgba(0,0,0,0.15);
     border-bottom: 4px solid var(--jg-gold);
   }
-  .program-title img {
-    height: clamp(24px, 5vw, 38px);
+  .program-title .flag-emblem {
+    height: clamp(30px, 8vw, 42px);
     width: auto;
     object-fit: contain;
+    margin-bottom: 0.15rem;
   }
-  /* thin red/gold/blue accent strip under the title, echoing the flag stripes */
+  .program-title .title-main {
+    font-weight: 800;
+    letter-spacing: 0.01em;
+    line-height: 1.28;
+    font-size: clamp(0.92rem, 3.6vw, 1.15rem);
+    max-width: 640px;
+  }
+  .program-title .title-year {
+    color: var(--jg-red);
+  }
+
   .flag-strip {
     flex: 0 0 auto;
     height: 5px;
@@ -72,54 +86,129 @@
     flex: 1 1 auto;
     min-height: 0;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
-    padding: 2dvh 4vw;
+    padding: 3dvh 4.5vw 5dvh;
   }
 
   .auth-card {
     width: 100%;
-    max-width: 440px;
-    max-height: 92dvh;
-    overflow-y: auto;
+    max-width: 460px;
     border: none;
-    border-radius: 16px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+    border-radius: 20px;
+    box-shadow: 0 14px 40px rgba(0,0,0,0.28);
     background: #fff;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .brand-panel {
-    display: none;
+    overflow: hidden;
   }
 
   .card-body {
-    padding: 4dvh 6vw;
+    padding: 4.2dvh 6.5vw 3.6dvh;
   }
-  .brand-title {
-    font-weight: 700;
-    font-size: 1.4rem;
-    color: var(--jg-blue);
-  }
+
   .brand-subtitle {
-    color: #6b7280;
-    font-size: 0.9rem;
+    color: var(--ink-soft);
+    font-size: 0.92rem;
+    margin-top: 0.35rem;
   }
-  .form-floating > label {
-    color: #6b7280;
+
+  /* Field group with leading icon */
+  .field-group {
+    margin-bottom: 1.5dvh;
   }
-  .form-floating > .form-control:focus {
+  .field-group label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--jg-blue);
+    margin-bottom: 0.4rem;
+    letter-spacing: 0.01em;
+  }
+  .input-icon-wrap {
+    position: relative;
+  }
+  .input-icon-wrap .icon-slot {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--jg-blue);
+    font-size: 1.05rem;
+    opacity: 0.75;
+    pointer-events: none;
+  }
+  .input-icon-wrap .form-control {
+    padding-left: 2.75rem;
+    height: calc(3.2em + 0.75rem);
+    border-radius: 12px;
+    border: 1.5px solid #e2e4ee;
+    font-size: 1rem;
+  }
+  .input-icon-wrap .form-control:focus {
     border-color: var(--jg-blue);
-    box-shadow: 0 0 0 0.2rem rgba(1, 0, 102, 0.15);
+    box-shadow: 0 0 0 0.2rem rgba(1, 0, 102, 0.12);
   }
+  .field-hint {
+    font-size: 0.75rem;
+    color: var(--ink-soft);
+    margin-top: 0.3rem;
+  }
+  .field-error {
+    font-size: 0.78rem;
+    color: var(--jg-red);
+    margin-top: 0.3rem;
+    display: none;
+  }
+  .is-invalid ~ .field-error,
+  .field-group.has-error .field-error {
+    display: block;
+  }
+  .field-group.has-error .form-control {
+    border-color: var(--jg-red);
+  }
+
+  /* Terms checkbox */
+  .terms-check {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    background: #f6f7fb;
+    border-radius: 12px;
+    padding: 0.85rem 0.95rem;
+    margin: 1.8dvh 0 2.2dvh;
+  }
+  .terms-check input[type="checkbox"] {
+    width: 1.15rem;
+    height: 1.15rem;
+    margin-top: 0.15rem;
+    flex-shrink: 0;
+    accent-color: var(--jg-blue);
+    cursor: pointer;
+  }
+  .terms-check label {
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: #3a3f4d;
+    margin: 0;
+    cursor: pointer;
+  }
+  .terms-check a {
+    color: var(--jg-blue);
+    font-weight: 600;
+    text-decoration: underline;
+  }
+
   .btn-primary {
     background-color: var(--jg-blue);
     border-color: var(--jg-blue);
-    padding: 1.2dvh 0;
+    padding: 1.4dvh 0;
     font-weight: 700;
     letter-spacing: 0.02em;
-    border-radius: 10px;
+    border-radius: 12px;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
   }
   .btn-primary:hover {
     background-color: var(--jg-blue-dark);
@@ -129,67 +218,75 @@
     background-color: #8f93c2;
     border-color: #8f93c2;
   }
-  .form-floating {
-    margin-bottom: 1.6dvh;
+
+  /* ---------------- Success state ---------------- */
+  .success-view {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 5dvh 6.5vw 4.5dvh;
+  }
+  .success-tick {
+    width: 78px;
+    height: 78px;
+    border-radius: 50%;
+    background: linear-gradient(160deg, #16a34a, #15803d);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 2.2dvh;
+    box-shadow: 0 8px 24px rgba(21,128,61,0.35);
+    animation: pop-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .success-tick i {
+    font-size: 2.4rem;
+    color: #fff;
+  }
+  @keyframes pop-in {
+    0% { transform: scale(0); opacity: 0; }
+    60% { transform: scale(1.08); opacity: 1; }
+    100% { transform: scale(1); }
+  }
+  .success-view h3 {
+    font-weight: 800;
+    color: var(--jg-blue);
+    font-size: 1.15rem;
+    margin-bottom: 1.2dvh;
+  }
+  .success-view .success-name {
+    color: var(--jg-red);
+  }
+  .success-view p {
+    color: #4b5060;
+    font-size: 0.93rem;
+    line-height: 1.65;
+    margin-bottom: 0.6dvh;
+  }
+  .success-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: #fff8e1;
+    border: 1px solid var(--jg-gold);
+    color: var(--jg-blue-dark);
+    font-size: 0.8rem;
+    font-weight: 700;
+    border-radius: 999px;
+    padding: 0.4rem 0.9rem;
+    margin: 1.8dvh 0 2.2dvh;
+  }
+  .btn-outline-secondary.btn-new {
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.88rem;
+    padding: 0.8dvh 1.4rem;
+    border-color: #d7dae2;
+    color: var(--ink-soft);
   }
 
-  /* Desktop: widen into a two-column layout with a branding side panel */
-  @media (min-width: 992px) {
-    .auth-card {
-      max-width: 900px;
-      max-height: 84dvh;
-      flex-direction: row;
-      overflow: hidden;
-    }
-    .brand-panel {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: flex-start;
-      width: 42%;
-      padding: 5dvh 3vw;
-      background: linear-gradient(160deg, var(--jg-blue) 0%, var(--jg-red) 100%);
-      color: #fff;
-      position: relative;
-      overflow: hidden;
-    }
-    .brand-panel::after {
-      /* subtle gold star accent, evoking the flag's crescent/star without copying it literally */
-      content: '★';
-      position: absolute;
-      right: -0.4rem;
-      bottom: -1.2rem;
-      font-size: 8rem;
-      color: rgba(255, 204, 0, 0.15);
-      line-height: 1;
-    }
-    .brand-panel .emoji {
-      font-size: 3rem;
-      margin-bottom: 2dvh;
-    }
-    .brand-panel h2 {
-      font-weight: 700;
-      font-size: 1.6rem;
-      margin-bottom: 1.2dvh;
-    }
-    .brand-panel p {
-      font-size: 0.95rem;
-      opacity: 0.92;
-      line-height: 1.6;
-    }
-    .form-panel {
-      width: 58%;
-      overflow-y: auto;
-      display: flex;
-      align-items: center;
-    }
-    .form-panel .card-body {
-      width: 100%;
-      padding: 5dvh 3vw;
-    }
-    .brand-title, .brand-subtitle {
-      display: none; /* shown instead in the side panel on desktop */
-    }
+  @media (min-width: 480px) {
+    .program-title .title-main { font-size: 1.05rem; }
   }
 </style>
 </head>
@@ -197,47 +294,75 @@
 
   <div class="page-wrap">
     <div class="program-title">
-      <span>PROGRAM</span>
-      <img src="./assets/SemarakJalurGemilang.png" alt="Semarak Jalur Gemilang">
-      <span>DAERAH BENTONG 2026</span>
+      <div class="title-main">
+        Pendaftaran Cabutan Bertuah Bersempena Hari Kebangsaan Ke-<span class="title-year">69</span> Peringkat Daerah Bentong Tahun 2026
+      </div>
     </div>
     <div class="flag-strip"></div>
 
     <div class="auth-shell">
       <div class="auth-card">
+        <div class="card-body">
 
-        <div class="brand-panel">
-
-          <h2>Pendaftaran / Cabutan Bertuah</h2>
-          <p>Daftar sekarang untuk peluang memenangi hadiah menarik. Isi maklumat anda di sebelah untuk menyertai cabutan bertuah kami.</p>
-        </div>
-
-        <div class="form-panel">
-          <div class="card-body">
+          <!-- ============ FORM VIEW ============ -->
+          <div id="formView">
             <div class="text-center mb-4">
-              <div class="brand-title">
-                  Pendaftaran / Cabutan Bertuah
-              </div>
-              <div class="brand-subtitle">Isi maklumat di bawah untuk mendaftar</div>
+              <div class="brand-subtitle">Penuhkan maklumat di bawah untuk mendaftar</div>
             </div>
 
             <form id="registerForm" novalidate>
 
-              <div class="form-floating">
-                <input type="text" class="form-control" id="full_name" placeholder="Nama Penuh" autofocus required>
+              <div class="field-group" id="nameGroup">
                 <label for="full_name">Nama Penuh</label>
+                <div class="input-icon-wrap">
+                  <i class="bi bi-person-fill icon-slot"></i>
+                  <input type="text" class="form-control" id="full_name" placeholder="Contoh: AHMAD BIN ALI" autofocus required>
+                </div>
+                <div class="field-error">Sila isi nama penuh anda.</div>
               </div>
 
-              <div class="form-floating">
-                <input type="text" class="form-control" id="mykad_number" placeholder="No. MyKad" maxlength="12" pattern="\d{12}" required>
-                <label for="mykad_number">No. MyKad (12 digit)</label>
+              <div class="field-group" id="mykadGroup">
+                <label for="mykad_number">No. MyKad (12 Digit)</label>
+                <div class="input-icon-wrap">
+                  <i class="bi bi-credit-card-2-front-fill icon-slot"></i>
+                  <input type="text" inputmode="numeric" autocomplete="off" class="form-control" id="mykad_number" placeholder="Contoh: 900101011234" maxlength="12" required>
+                </div>
+                <div class="field-error">No. MyKad mesti 12 digit angka.</div>
               </div>
-              <div class="d-grid mt-3">
-                <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">Daftar</button>
+
+              <div class="terms-check">
+                <input type="checkbox" id="agreeTerms" required>
+                <label for="agreeTerms">Dengan penyertaan ini, anda bersetuju dengan syarat dan terma yang ditetapkan oleh pihak penganjur Program Sambutan Hari Kebangsaan Ke-69 Peringkat Daerah Bentong 2026.</label>
+              </div>
+              <div class="field-error" id="termsError" style="margin-top:-1.4dvh; margin-bottom: 1.4dvh;">Sila bersetuju dengan syarat dan terma untuk meneruskan.</div>
+
+              <div class="d-grid">
+                <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
+                  <i class="bi bi-pencil-square"></i>
+                  <span>Daftar Penyertaan</span>
+                </button>
               </div>
 
             </form>
           </div>
+
+          <!-- ============ SUCCESS VIEW ============ -->
+          <div id="successView" class="success-view">
+            <div class="success-tick">
+              <i class="bi bi-check-lg"></i>
+            </div>
+            <h3>Berjaya, terima kasih <span class="success-name" id="successName"></span>!</h3>
+            <p>Anda berjaya mendaftar untuk cabutan bertuah.</p>
+            <p>5 pemenang kategori awam akan diumumkan di pentas utama.</p>
+            <div class="success-badge">
+              <i class="bi bi-megaphone-fill"></i>
+              Nantikan pengumuman pada bila-bila masa
+            </div>
+            <button type="button" class="btn btn-outline-secondary btn-new" id="registerAnotherBtn">
+              <i class="bi bi-arrow-repeat me-1"></i>Daftar Peserta Lain
+            </button>
+          </div>
+
         </div>
       </div>
     </div>
@@ -246,7 +371,7 @@
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- SweetAlert2 -->
+<!-- SweetAlert2 (kept for error alerts) -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script type="module">
@@ -261,59 +386,106 @@
   const form = document.getElementById('registerForm')
   const submitBtn = document.getElementById('submitBtn')
   const fullNameInput = document.getElementById('full_name')
+  const mykadInput = document.getElementById('mykad_number')
+  const nameGroup = document.getElementById('nameGroup')
+  const mykadGroup = document.getElementById('mykadGroup')
+  const agreeTerms = document.getElementById('agreeTerms')
+  const termsError = document.getElementById('termsError')
 
-  // Put focus on the name field as soon as the page is ready, so the
-  // participant can start typing immediately without tapping the field first.
+  const formView = document.getElementById('formView')
+  const successView = document.getElementById('successView')
+  const successName = document.getElementById('successName')
+  const registerAnotherBtn = document.getElementById('registerAnotherBtn')
+
+  // Focus the name field so participants can start typing right away.
   fullNameInput.focus()
 
   fullNameInput.addEventListener('input', () => {
     const cursorPos = fullNameInput.selectionStart
     fullNameInput.value = fullNameInput.value.toUpperCase()
     fullNameInput.setSelectionRange(cursorPos, cursorPos)
+    nameGroup.classList.remove('has-error')
+  })
+
+  // MyKad field: text type visually, but only integers are ever allowed in.
+  mykadInput.addEventListener('input', () => {
+    const digitsOnly = mykadInput.value.replace(/\D/g, '').slice(0, 12)
+    mykadInput.value = digitsOnly
+    mykadGroup.classList.remove('has-error')
+  })
+  mykadInput.addEventListener('keypress', (e) => {
+    if (!/[0-9]/.test(e.key)) e.preventDefault()
+  })
+  mykadInput.addEventListener('paste', (e) => {
+    e.preventDefault()
+    const text = (e.clipboardData || window.clipboardData).getData('text')
+    mykadInput.value = text.replace(/\D/g, '').slice(0, 12)
+  })
+
+  agreeTerms.addEventListener('change', () => {
+    if (agreeTerms.checked) termsError.style.display = 'none'
   })
 
   function isValidMyKad(value) {
     return /^\d{12}$/.test(value)
   }
 
+  function setLoading(isLoading, label) {
+    submitBtn.disabled = isLoading
+    submitBtn.innerHTML = isLoading
+      ? `<span class="spinner-border spinner-border-sm"></span><span>${label}</span>`
+      : `<i class="bi bi-pencil-square"></i><span>Daftar Penyertaan</span>`
+  }
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault()
 
-    const full_name = document.getElementById('full_name').value.trim()
-    const mykad_number = document.getElementById('mykad_number').value.trim()
+    const full_name = fullNameInput.value.trim()
+    const mykad_number = mykadInput.value.trim()
+
+    // reset previous inline errors
+    nameGroup.classList.remove('has-error')
+    mykadGroup.classList.remove('has-error')
+    termsError.style.display = 'none'
+
+    let hasError = false
 
     if (!full_name) {
-      Swal.fire('Ralat', 'Sila isi nama penuh.', 'error')
-      return
+      nameGroup.classList.add('has-error')
+      hasError = true
     }
 
     if (!isValidMyKad(mykad_number)) {
-      Swal.fire('Ralat', 'No. MyKad mesti 12 digit angka.', 'error')
-      return
+      mykadGroup.classList.add('has-error')
+      hasError = true
     }
 
-    submitBtn.disabled = true
-    submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Menyemak...`
+    if (!agreeTerms.checked) {
+      termsError.style.display = 'block'
+      hasError = true
+    }
+
+    if (hasError) return
+
+    setLoading(true, 'Menyemak...')
 
     // Check if this MyKad has already registered
     const { data: alreadyRegistered, error: checkError } = await supabase
       .rpc('check_mykad_registered', { check_mykad: mykad_number })
 
     if (checkError) {
-      submitBtn.disabled = false
-      submitBtn.textContent = 'Daftar'
+      setLoading(false)
       Swal.fire('Ralat', 'Gagal menyemak status pendaftaran: ' + checkError.message, 'error')
       return
     }
 
     if (alreadyRegistered) {
-      submitBtn.disabled = false
-      submitBtn.textContent = 'Daftar'
+      setLoading(false)
       Swal.fire('Ralat', 'No. MyKad ini sudah didaftarkan.', 'error')
       return
     }
 
-    submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Menghantar...`
+    setLoading(true, 'Menghantar...')
 
     const { error } = await supabase
       .from('participants')
@@ -322,8 +494,7 @@
         mykad_number
       }])
 
-    submitBtn.disabled = false
-    submitBtn.textContent = 'Daftar'
+    setLoading(false)
 
     if (error) {
       const msg = error.code === '23505'
@@ -334,13 +505,19 @@
       return
     }
 
-    Swal.fire({
-      title: 'Berjaya!',
-      text: 'Pendaftaran anda telah diterima. Terima kasih!',
-      icon: 'success',
-      confirmButtonColor: '#010066'
-    })
+    // Show inline success view
+    successName.textContent = full_name
+    formView.style.display = 'none'
+    successView.style.display = 'flex'
+  })
+
+  registerAnotherBtn.addEventListener('click', () => {
     form.reset()
+    nameGroup.classList.remove('has-error')
+    mykadGroup.classList.remove('has-error')
+    termsError.style.display = 'none'
+    successView.style.display = 'none'
+    formView.style.display = 'block'
     fullNameInput.focus()
   })
 </script>
