@@ -394,6 +394,23 @@
       </div>
     </div>
     <div class="window-hint">Pilih satu kategori — "Semua" mengabaikan kategori pendaftaran.</div>
+
+    <label class="form-label fw-semibold mt-3">Had Bilangan Cabutan <span class="text-muted fw-normal">(pilihan, setiap kategori)</span></label>
+    <div class="row g-2">
+      <div class="col-4">
+        <div class="form-text mb-1">Semua</div>
+        <input type="text" inputmode="numeric" pattern="[0-9]*" class="form-control form-control-sm" id="limitAll" placeholder="Tiada had">
+      </div>
+      <div class="col-4">
+        <div class="form-text mb-1">Awam</div>
+        <input type="text" inputmode="numeric" pattern="[0-9]*" class="form-control form-control-sm" id="limitPublic" placeholder="Tiada had">
+      </div>
+      <div class="col-4">
+        <div class="form-text mb-1">Urus Setia</div>
+        <input type="text" inputmode="numeric" pattern="[0-9]*" class="form-control form-control-sm" id="limitOrganizer" placeholder="Tiada had">
+      </div>
+    </div>
+    <div class="window-hint">Butang cabutan dilumpuhkan bila bilangan pemenang kategori berkenaan mencapai had ini. Kosongkan = tiada had.</div>
   </div>
 
   <div class="status-card" id="drawCard">
@@ -464,6 +481,9 @@
   const catAll = document.getElementById('catAll')
   const catPublic = document.getElementById('catPublic')
   const catOrganizer = document.getElementById('catOrganizer')
+  const limitAllInput = document.getElementById('limitAll')
+  const limitPublicInput = document.getElementById('limitPublic')
+  const limitOrganizerInput = document.getElementById('limitOrganizer')
   const vvipToggleBtn = document.getElementById('vvipToggleBtn')
   const vvipExitBtn = document.getElementById('vvipExitBtn')
   const vvipPrizeText = document.getElementById('vvipPrizeText')
@@ -544,6 +564,14 @@
     vvipCategoryBadge.className = `cat-${categoryFilter}`
   }
 
+  function restrictToInteger(el) {
+    el.addEventListener('input', () => {
+      el.value = el.value.replace(/[^0-9]/g, '')
+    })
+    el.addEventListener('change', () => onWindowChanged())
+  }
+  ;[limitAllInput, limitPublicInput, limitOrganizerInput].forEach(restrictToInteger)
+
   function setCategoryFilter(next) {
     categoryFilter = next
     catAll.checked = next === 'all'
@@ -618,6 +646,17 @@
     return all
   }
 
+  function getCategoryLimit(cat) {
+    const el = cat === 'all' ? limitAllInput : cat === 'public' ? limitPublicInput : limitOrganizerInput
+    const val = el.value.trim()
+    return val === '' ? null : parseInt(val, 10)
+  }
+  function getCategoryWinCount(cat, pastWinners) {
+    if (cat === 'all') return pastWinners.length
+    if (cat === 'public') return pastWinners.filter(w => w.participants?.urus_setia === false).length
+    return pastWinners.filter(w => w.participants?.urus_setia === true).length
+  }
+
   // ---------------- Kelayakan: peserta dalam tempoh, belum pernah menang ----------------
   // A person can register multiple times (mykad_number is no longer unique).
   // We de-duplicate to one entry per mykad_number, and exclude anyone whose
@@ -629,7 +668,7 @@
     let pastWinners
     try {
       pastWinners = await fetchAllRows(() =>
-        supabase.from('winners').select('participants(mykad_number)').order('id', { ascending: true })
+        supabase.from('winners').select('participants(mykad_number, urus_setia)').order('id', { ascending: true })
       )
     } catch (pwErr) {
       console.error(pwErr); eligibleBadge.textContent = 'Ralat'; return
@@ -637,7 +676,9 @@
     const wonMykads = new Set(
       (pastWinners || []).map(w => w.participants?.mykad_number).filter(Boolean)
     )
-
+    const catLimit = getCategoryLimit(categoryFilter)
+    const catCount = getCategoryWinCount(categoryFilter, pastWinners)
+    const limitReached = catLimit !== null && catCount >= catLimit
     const fromVal = fpFrom.selectedDates[0]
     const untilVal = new Date()
 
@@ -667,7 +708,8 @@
     eligibleParticipants = Array.from(byMykad.values())
 
     eligibleBadge.textContent = `${eligibleParticipants.length} peserta layak (${(allParticipants || []).length} pendaftaran dalam tempoh ini)`
-    drawBtn.disabled = eligibleParticipants.length === 0
+      + (catLimit !== null ? ` · Had: ${catCount}/${catLimit}${limitReached ? ' (dicapai)' : ''}` : '')
+    drawBtn.disabled = eligibleParticipants.length === 0 || limitReached
 
     stageChannel.send({
       type: 'broadcast',
@@ -732,6 +774,16 @@
 
   drawBtn.addEventListener('click', async () => {
     if (isSpinning) return
+        const _limit = getCategoryLimit(categoryFilter)
+          if (_limit !== null) {
+            // eligibleBadge dikira semula setiap loadEligible(), jadi guna semula pastWinners terkini melalui semakan pantas
+            const { data: pw } = await supabase.from('winners').select('participants(urus_setia)')
+            const cnt = getCategoryWinCount(categoryFilter, pw || [])
+            if (cnt >= _limit) {
+              Swal.fire({ icon: 'warning', title: 'Had dicapai', text: `Had cabutan untuk kategori ini (${_limit}) telah dicapai.` })
+              return
+            }
+          }
     if (eligibleParticipants.length === 0) {
       Swal.fire({ icon: 'warning', title: 'Tiada peserta layak', text: 'Tiada peserta layak untuk dicabut.' })
       return
