@@ -396,7 +396,6 @@
               <div class="field-error" id="termsError" style="margin-top:-1.4dvh; margin-bottom: 1.4dvh;">Sila bersetuju dengan syarat dan terma untuk meneruskan.</div>
 
               <input type="hidden" id="urus_setia" name="urus_setia" value="false">
-              <div class="d-grid">
 
               <div class="d-grid">
                 <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
@@ -475,6 +474,12 @@
   const successName = document.getElementById('successName')
   const successCategoryMsg = document.getElementById('successCategoryMsg')
   const registerAnotherBtn = document.getElementById('registerAnotherBtn')
+  const urusSetiaInput = document.getElementById('urus_setia')
+
+  // Tetapkan nilai urus_setia berdasarkan query string, cth: ?urusSetia=true
+  const urlParams = new URLSearchParams(window.location.search)
+  const isUrusSetia = urlParams.get('urusSetia') === 'true' || urlParams.get('urus_setia') === 'true'
+  urusSetiaInput.value = isUrusSetia ? 'true' : 'false'
 
   const errorView = document.getElementById('errorView')
   const errorTitle = document.getElementById('errorTitle')
@@ -584,11 +589,12 @@
 
     setLoading(true, 'Menghantar...')
 
-    const { error } = await supabase
+      const { error } = await supabase
       .from('participants')
       .insert([{
         full_name,
-        mykad_number
+        mykad_number,
+        urus_setia: urusSetiaInput.value === 'true'
       }])
 
     setLoading(false)
