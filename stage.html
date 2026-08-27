@@ -151,6 +151,31 @@
     letter-spacing: 0.06em;
     margin-top: 2dvh;
   }
+  #soundUnlockBtn {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  z-index: 40;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0,0,0,0.35);
+  color: rgba(255,255,255,0.6);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.3s ease;
+  opacity: 0.55;
+}
+#soundUnlockBtn:hover { opacity: 1; }
+#soundUnlockBtn.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
 </style>
 </head>
 <body>
@@ -163,7 +188,7 @@
 
 <canvas id="three-canvas"></canvas>
 <div id="vignette"></div>
-
+<button id="soundUnlockBtn" title="Aktifkan bunyi" aria-label="Aktifkan bunyi">🔇</button>
 <div id="prizeOverlay">
   <span class="winner-badge" id="prizeIconBadge">🏆</span>
   <span class="winner-prize-badge" id="winnerPrizeBadge"></span>
@@ -223,6 +248,109 @@
     balloonSeparationMargin: 0.18,   // jarak tambahan (unit dunia) antara jejari dua belon
     balloonSeparationStrength: 10,   // kelajuan pembetulan jarak (semakin besar = semakin cepat menolak)
   }
+
+  /* ============================================================
+   SOUND MANAGER - synthesized audio via Web Audio API
+   Tiada fail audio diperlukan; semua bunyi dijana secara prosedural.
+   ============================================================ */
+const SoundManager = (() => {
+  let ctx = null
+  let unlocked = false
+  let shakeNode = null
+
+  function getCtx() {
+    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)()
+    return ctx
+  }
+
+  function unlock() {
+    const c = getCtx()
+    if (c.state === 'suspended') c.resume()
+    unlocked = true
+  }
+
+  function createNoiseBuffer(duration) {
+    const c = getCtx()
+    const bufferSize = c.sampleRate * duration
+    const buffer = c.createBuffer(1, bufferSize, c.sampleRate)
+    const data = buffer.getChannelData(0)
+    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1
+    return buffer
+  }
+
+  function tone(freq, duration = 0.3, type = 'sine', volume = 0.3) {
+    if (!unlocked) return
+    const c = getCtx()
+    const osc = c.createOscillator()
+    const gain = c.createGain()
+    osc.type = type
+    osc.frequency.value = freq
+    gain.gain.setValueAtTime(volume, c.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + duration)
+    osc.connect(gain).connect(c.destination)
+    osc.start()
+    osc.stop(c.currentTime + duration)
+  }
+
+  function noise({ duration = 0.5, volume = 0.3, filterFreq = 800, filterType = 'bandpass' } = {}) {
+    if (!unlocked) return
+    const c = getCtx()
+    const src = c.createBufferSource()
+    src.buffer = createNoiseBuffer(duration)
+    const filter = c.createBiquadFilter()
+    filter.type = filterType
+    filter.frequency.value = filterFreq
+    const gain = c.createGain()
+    gain.gain.setValueAtTime(volume, c.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + duration)
+    src.connect(filter).connect(gain).connect(c.destination)
+    src.start()
+    src.stop(c.currentTime + duration)
+  }
+
+  function shakeStart() {
+    if (!unlocked || shakeNode) return
+    const c = getCtx()
+    const src = c.createBufferSource()
+    src.buffer = createNoiseBuffer(2)
+    src.loop = true
+    const filter = c.createBiquadFilter()
+    filter.type = 'lowpass'
+    filter.frequency.value = 200
+    const gain = c.createGain()
+    gain.gain.value = 0.25
+    src.connect(filter).connect(gain).connect(c.destination)
+    src.start()
+    shakeNode = src
+  }
+
+  function shakeStop() {
+    if (shakeNode) { shakeNode.stop(); shakeNode = null }
+  }
+
+  return {
+    unlock,
+    click:   () => tone(880, 0.08, 'square', 0.2),
+    shakeStart,
+    shakeStop,
+    open:    () => noise({ duration: 0.6, volume: 0.35, filterFreq: 1200, filterType: 'highpass' }),
+    release: () => noise({ duration: 0.25, volume: 0.12, filterFreq: 2000, filterType: 'bandpass' }),
+    pop: () => {
+      tone(150, 0.05, 'square', 0.4)
+      noise({ duration: 0.15, volume: 0.5, filterFreq: 3000, filterType: 'highpass' })
+    },
+    reveal: () => {
+      const notes = [523.25, 659.25, 783.99, 1046.5] // C5 E5 G5 C6
+      notes.forEach((freq, i) => setTimeout(() => tone(freq, 0.5, 'sine', 0.25), i * 90))
+    },
+  }
+})()
+
+const soundUnlockBtn = document.getElementById('soundUnlockBtn')
+soundUnlockBtn.addEventListener('click', () => {
+  SoundManager.unlock()
+  soundUnlockBtn.classList.add('hidden')
+}, { once: true })
 
   const el = {
     prizeOverlay: document.getElementById('prizeOverlay'),
@@ -732,9 +860,11 @@
     phaseStartTime = performance.now()
     shakeTimer = CONFIG.shakeDurationMs
     phase = 'shaking'
+    SoundManager.shakeStart()
   }
 
   function spawnBalloon(entry, now) {
+    SoundManager.release()
     const color = CONFIG.colors[cryptoRandomInt(CONFIG.colors.length)]
     const group = createBalloonMesh(color)
     const sprite = createNameSprite(entry.name)
@@ -776,6 +906,8 @@
     scene.remove(balloon.group)
     activeBalloons = activeBalloons.filter((b) => b !== balloon)
     spawnConfetti(pos, 260)
+    SoundManager.pop()
+    SoundManager.reveal()
     spotTarget.position.copy(pos)
     spotLight.position.set(pos.x, pos.y + 8, pos.z + 6)
     spotPulseUntil = performance.now() + 900
@@ -859,6 +991,8 @@
         releaseStartTime = now
         lidOpenTarget = 1
         phase = 'releasing'
+        SoundManager.shakeStop()
+        SoundManager.open()
       }
       return
     }
