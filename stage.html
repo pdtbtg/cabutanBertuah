@@ -249,6 +249,17 @@
     balloonSeparationStrength: 10,   // kelajuan pembetulan jarak (semakin besar = semakin cepat menolak)
   }
 
+    const DRAMATIC = {
+    riseSpeedMin: 0.45,
+    riseSpeedMax: 0.75,
+    balloonEmergeMs: 950,
+    preBurstGrowMs: 1600,
+    preBurstScaleMult: 3.2,
+    suspenseDelayMinMs: 700,
+    suspenseDelayMaxMs: 1400,
+    hoverCeiling: 9,   // winner balloon holds here instead of drifting off-screen while waiting
+  }
+
   /* ============================================================
    SOUND MANAGER - synthesized audio via Web Audio API
    Tiada fail audio diperlukan; semua bunyi dijana secara prosedural.
@@ -968,6 +979,8 @@ soundUnlockBtn.addEventListener('click', () => {
   let activeBalloons = []    // belon yang sedang di udara
   let winnerRevealed = false
   let currentWinnerMykad = ''
+  let dramaticMode = false
+  let allReleasedTriggered = false
 
   function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3) }
   function easeOutBack(t) { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2) }
@@ -1006,6 +1019,8 @@ soundUnlockBtn.addEventListener('click', () => {
     winnerRevealed = false
     releaseSchedule = []
     nextScheduleIndex = 0
+    dramaticMode = false
+    allReleasedTriggered = false
   }
 
   function buildReleaseSchedule(payload) {
@@ -1028,6 +1043,8 @@ soundUnlockBtn.addEventListener('click', () => {
 
   function startDraw(payload) {
     clearStage()
+    dramaticMode = payload.category === 'all'
+    allReleasedTriggered = false  
     showPrizeOverlay(payload.prizeName)
     currentWinnerMykad = payload.winnerMykad
     releaseSchedule = buildReleaseSchedule(payload)
@@ -1038,42 +1055,51 @@ soundUnlockBtn.addEventListener('click', () => {
     SoundManager.shakeStart()
   }
 
-  function spawnBalloon(entry, now) {
-    SoundManager.release()
-    const color = CONFIG.colors[cryptoRandomInt(CONFIG.colors.length)]
-    const group = createBalloonMesh(color)
-    const sprite = createNameSprite(entry.name)
-    sprite.position.set(0, 1.0, 1.1)
-    group.add(sprite)
+    function spawnBalloon(entry, now) {
+      SoundManager.release()
+      const color = CONFIG.colors[cryptoRandomInt(CONFIG.colors.length)]
+      const group = createBalloonMesh(color)
+      const sprite = createNameSprite(entry.name)
+      sprite.position.set(0, 1.0, 1.1)
+      group.add(sprite)
+    
+      const mouth = getBoxMouthPosition(new THREE.Vector3())
+      group.position.copy(mouth)
+      group.scale.setScalar(0.05)
+    
+      const finalScale = cryptoRandomRange(CONFIG.balloonScaleMin, CONFIG.balloonScaleMax)
   
-    const mouth = getBoxMouthPosition(new THREE.Vector3())
-    group.position.copy(mouth)
-    group.scale.setScalar(0.05)
+      // grand prize (catAll) = slower, more dramatic float
+      const riseMin = dramaticMode ? DRAMATIC.riseSpeedMin : CONFIG.balloonRiseSpeedMin
+      const riseMax = dramaticMode ? DRAMATIC.riseSpeedMax : CONFIG.balloonRiseSpeedMax
   
-    const finalScale = cryptoRandomRange(CONFIG.balloonScaleMin, CONFIG.balloonScaleMax)
-    const balloon = {
-      group, sprite, name: entry.name, isWinner: entry.isWinner,
-      spawnTime: now,
-      finalScale,
-      driftX: cryptoRandomRange(-2.4, 2.4),
-      swaySeed: cryptoRandomFloat() * Math.PI * 2,
-      riseSpeed: cryptoRandomRange(CONFIG.balloonRiseSpeedMin, CONFIG.balloonRiseSpeedMax),
-      popAt: entry.isWinner ? now + cryptoRandomRange(CONFIG.winnerPopDelayMinMs, CONFIG.winnerPopDelayMaxMs) : null,
-      popped: false,
-      baseXAtMouth: mouth.x,
-      layerZ: cryptoRandomRange(-1.6, 1.6),
-      // anjakan awal rawak supaya belon tidak bertindan sesama sendiri sebaik keluar dari mulut kotak
-      spawnOffsetX: cryptoRandomRange(-0.9, 0.9),
-      // anjakan kolisi terkumpul, ditambah oleh resolveBalloonCollisions semasa fasa muncul
-      collisionOffsetX: 0,
-      collisionOffsetZ: 0,
+      // winner's pop is normally scheduled randomly at spawn time; in dramatic mode
+      // it's withheld and only scheduled once ALL balloons have left the box (see updatePhases)
+      const popAt = (entry.isWinner && !dramaticMode)
+        ? now + cryptoRandomRange(CONFIG.winnerPopDelayMinMs, CONFIG.winnerPopDelayMaxMs)
+        : null
+  
+      const balloon = {
+        group, sprite, name: entry.name, isWinner: entry.isWinner,
+        spawnTime: now,
+        finalScale,
+        driftX: cryptoRandomRange(-2.4, 2.4),
+        swaySeed: cryptoRandomFloat() * Math.PI * 2,
+        riseSpeed: cryptoRandomRange(riseMin, riseMax),
+        popAt,
+        popped: false,
+        baseXAtMouth: mouth.x,
+        layerZ: cryptoRandomRange(-1.6, 1.6),
+        spawnOffsetX: cryptoRandomRange(-0.9, 0.9),
+        collisionOffsetX: 0,
+        collisionOffsetZ: 0,
+      }
+      if (balloon.popAt !== null) {
+        balloon.preBurstStartAt = balloon.popAt - (dramaticMode ? DRAMATIC.preBurstGrowMs : CONFIG.winnerPreBurstGrowMs)
+      }
+      scene.add(group)
+      activeBalloons.push(balloon)
     }
-    if (balloon.popAt !== null) {
-      balloon.preBurstStartAt = balloon.popAt - CONFIG.winnerPreBurstGrowMs
-    }
-    scene.add(group)
-    activeBalloons.push(balloon)
-  }
 
   function popWinnerBalloon(balloon) {
     balloon.popped = true
@@ -1120,14 +1146,19 @@ soundUnlockBtn.addEventListener('click', () => {
         b.group.position.z = mouth.z + b.layerZ + b.collisionOffsetZ
       } else {
         b.group.position.y += b.riseSpeed * dt
+        if (b.isWinner && dramaticMode && b.popAt === null && b.group.position.y > DRAMATIC.hoverCeiling) {
+          b.group.position.y = DRAMATIC.hoverCeiling
+        }
         const riseT = clamp01((b.group.position.y - 1.5) / 12)
         b.group.position.x += (b.driftX * dt * 0.18)
         b.group.position.x += Math.sin(now / 650 + b.swaySeed) * 0.012
   
         if (b.isWinner && !b.popped && b.preBurstStartAt !== undefined && now >= b.preBurstStartAt) {
-          const growT = clamp01((now - b.preBurstStartAt) / CONFIG.winnerPreBurstGrowMs)
+          const growMs = dramaticMode ? DRAMATIC.preBurstGrowMs : CONFIG.winnerPreBurstGrowMs
+          const scaleMult = dramaticMode ? DRAMATIC.preBurstScaleMult : CONFIG.winnerPreBurstScaleMult
+          const growT = clamp01((now - b.preBurstStartAt) / growMs)
           const eased = easeInOutSine(growT)
-          const scale = b.finalScale * (1 + (CONFIG.winnerPreBurstScaleMult - 1) * eased)
+          const scale = b.finalScale * (1 + (scaleMult - 1) * eased)
           b.group.scale.setScalar(scale)
           b.group.position.x += (0 - b.group.position.x) * Math.min(1, dt * 2.2) * eased
           b.group.position.z += (6 - b.group.position.z) * Math.min(1, dt * 2.2) * eased
@@ -1181,7 +1212,18 @@ soundUnlockBtn.addEventListener('click', () => {
         spawnBalloon(releaseSchedule[nextScheduleIndex], now)
         nextScheduleIndex++
       }
-      // semua sudah dijadualkan keluar & tiada lagi di udara -> tutup lid semula
+
+      // dramatic mode: begin the winner's countdown only once ALL balloons are released
+      if (dramaticMode && !allReleasedTriggered && nextScheduleIndex >= releaseSchedule.length) {
+        allReleasedTriggered = true
+        const winner = activeBalloons.find((b) => b.isWinner && !b.popped)
+        if (winner) {
+          const delay = cryptoRandomRange(DRAMATIC.suspenseDelayMinMs, DRAMATIC.suspenseDelayMaxMs)
+          winner.popAt = now + delay
+          winner.preBurstStartAt = winner.popAt - DRAMATIC.preBurstGrowMs
+        }
+      }
+
       if (nextScheduleIndex >= releaseSchedule.length && activeBalloons.length === 0) {
         lidOpenTarget = 0
         phase = winnerRevealed ? 'winner' : 'releasing'
