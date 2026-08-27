@@ -269,20 +269,46 @@ const SoundManager = (() => {
   let ctx = null
   let unlocked = false
   let shakeNode = null
-
-  const revealAudio = new Audio('assets/winner-fanfare.mp3')
-  revealAudio.preload = 'auto'
-  revealAudio.volume = 0.85
-  revealAudio.load()
-
-  const popAudio = new Audio('assets/balloon-pop.mp3')
-  popAudio.preload = 'auto'
-  popAudio.volume = 0.9
-  popAudio.load()
+  let popBuffer = null
+  let revealBuffer = null
 
   function getCtx() {
     if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)()
     return ctx
+  }
+
+  // pra-muat & decode kedua-dua MP3 ke AudioBuffer - membolehkan main dengan
+  // latensi rendah & masa yang tepat (sample-accurate) melalui jam AudioContext
+  // yang sama, tidak seperti elemen <audio> yang latensinya tak boleh diramal
+  async function loadBuffer(url) {
+    const c = getCtx()
+    const res = await fetch(url)
+    const arr = await res.arrayBuffer()
+    return await c.decodeAudioData(arr)
+  }
+  ;(async () => {
+    try {
+      const [pop, reveal] = await Promise.all([
+        loadBuffer('assets/balloon-pop.mp3'),
+        loadBuffer('assets/winner-fanfare.mp3'),
+      ])
+      popBuffer = pop
+      revealBuffer = reveal
+    } catch (e) {
+      console.error('[SoundManager] gagal memuatkan fail audio:', e)
+    }
+  })()
+
+  function playBuffer(buffer, { volume = 1, delay = 0 } = {}) {
+    if (!unlocked || !buffer) return
+    const c = getCtx()
+    const src = c.createBufferSource()
+    src.buffer = buffer
+    const gain = c.createGain()
+    gain.gain.value = volume
+    src.connect(gain).connect(c.destination)
+    src.start(c.currentTime + delay)
+    return src
   }
 
   function unlock() {
@@ -290,6 +316,20 @@ const SoundManager = (() => {
     if (c.state === 'suspended') c.resume()
     unlocked = true
   }
+
+  // ... createNoiseBuffer, tone, noise, envTone, brassNote, timpaniHit, windChimes, shakeStart, shakeStop unchanged ...
+
+  return {
+    unlock,
+    click:   () => tone(880, 0.08, 'square', 0.2),
+    shakeStart,
+    shakeStop,
+    open:    () => noise({ duration: 0.6, volume: 0.35, filterFreq: 1200, filterType: 'highpass' }),
+    release: () => { /* unchanged */ },
+    pop: () => playBuffer(popBuffer, { volume: 0.9 }),
+    reveal: () => playBuffer(revealBuffer, { volume: 0.85, delay: 0.12 }),  // 120ms stagger, scheduled on the same clock
+  }
+})()
 
   function createNoiseBuffer(duration) {
     const c = getCtx()
@@ -1093,14 +1133,14 @@ soundUnlockBtn.addEventListener('click', () => {
       activeBalloons.push(balloon)
     }
 
-  function popWinnerBalloon(balloon) {
+    function popWinnerBalloon(balloon) {
     balloon.popped = true
     const pos = balloon.group.position.clone()
     scene.remove(balloon.group)
     activeBalloons = activeBalloons.filter((b) => b !== balloon)
     spawnConfetti(pos, 260)
     SoundManager.pop()
-    setTimeout(() => SoundManager.reveal(), 120)   // ← beri pop ruang bernafas dulu sebelum fanfare masuk
+    SoundManager.reveal()          // ← delay is now handled internally, precisely
     spotTarget.position.copy(pos)
     spotLight.position.set(pos.x, pos.y + 8, pos.z + 6)
     spotPulseUntil = performance.now() + 900
@@ -1137,7 +1177,6 @@ soundUnlockBtn.addEventListener('click', () => {
         b.group.position.y = mouth.y + t * 1.1
         b.group.position.z = mouth.z + b.layerZ + b.collisionOffsetZ
       } else {
-        b.group.position.y += b.riseSpeed * dt
         if (b.isWinner) {
           const ceiling = dramaticMode ? DRAMATIC.hoverCeiling : CONFIG.normalHoverCeiling
           b.group.position.y = Math.min(b.group.position.y + b.riseSpeed * dt, ceiling)
