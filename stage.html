@@ -499,7 +499,7 @@ const SoundManager = (() => {
       const c = getCtx()
       const t0 = c.currentTime
 
-      // "snap" - bandpass noise sweeping down fast, mimics rubber tension releasing
+      // "snap" - bandpass noise sweeping down fast
       const snap = c.createBufferSource()
       snap.buffer = createNoiseBuffer(0.15)
       const snapFilter = c.createBiquadFilter()
@@ -508,26 +508,40 @@ const SoundManager = (() => {
       snapFilter.frequency.setValueAtTime(3500, t0)
       snapFilter.frequency.exponentialRampToValueAtTime(400, t0 + 0.12)
       const snapGain = c.createGain()
-      snapGain.gain.setValueAtTime(0.7, t0)
+      snapGain.gain.setValueAtTime(0.9, t0)                    // ← naik dari 0.7
       snapGain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.13)
       snap.connect(snapFilter).connect(snapGain).connect(c.destination)
       snap.start(t0)
       snap.stop(t0 + 0.15)
 
-      // sharp broadband click on top - the actual "crack" of the burst
+      // sharp broadband click - "crack"
       const click = c.createBufferSource()
       click.buffer = createNoiseBuffer(0.03)
       const clickGain = c.createGain()
-      clickGain.gain.setValueAtTime(0.8, t0)
+      clickGain.gain.setValueAtTime(1.0, t0)                   // ← naik dari 0.8
       clickGain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.03)
       click.connect(clickGain).connect(c.destination)
       click.start(t0)
       click.stop(t0 + 0.03)
+
+      // NEW: low "thud" - bagi pop rasa lebih bertenaga & tak mudah "hilang"
+      // bila reveal fanfare masuk sepantas mungkin lepas ini
+      const thud = c.createOscillator()
+      thud.type = 'sine'
+      thud.frequency.setValueAtTime(180, t0)
+      thud.frequency.exponentialRampToValueAtTime(60, t0 + 0.1)
+      const thudGain = c.createGain()
+      thudGain.gain.setValueAtTime(0.5, t0)
+      thudGain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.15)
+      thud.connect(thudGain).connect(c.destination)
+      thud.start(t0)
+      thud.stop(t0 + 0.15)
     },
     reveal: () => {
       if (!unlocked) return
       revealAudio.currentTime = 0   // reset in case previous draw's sound hasn't finished
       revealAudio.play().catch(() => {})
+      setTimeout(() => { revealAudio.volume = 0.85 }, 150)
     },
   }
 })()
@@ -1120,7 +1134,7 @@ soundUnlockBtn.addEventListener('click', () => {
     activeBalloons = activeBalloons.filter((b) => b !== balloon)
     spawnConfetti(pos, 260)
     SoundManager.pop()
-    SoundManager.reveal()
+    setTimeout(() => SoundManager.reveal(), 120)   // ← beri pop ruang bernafas dulu sebelum fanfare masuk
     spotTarget.position.copy(pos)
     spotLight.position.set(pos.x, pos.y + 8, pos.z + 6)
     spotPulseUntil = performance.now() + 900
