@@ -586,13 +586,22 @@
   catPublic.addEventListener('change', () => { if (catPublic.checked) setCategoryFilter('public'); else catPublic.checked = true })
   catOrganizer.addEventListener('change', () => { if (catOrganizer.checked) setCategoryFilter('organizer'); else catOrganizer.checked = true })
 
-  function showControl() {
-    loginScreen.style.display = 'none'
-    controlScreen.style.display = 'block'
-    stageChannel.subscribe()
-    loadEligible()
-    loadWinnersList()
-  }
+  let stageChannelReady = false
+
+function showControl() {
+  loginScreen.style.display = 'none'
+  controlScreen.style.display = 'block'
+
+  stageChannel.subscribe((status, err) => {
+    console.log('[control] stageChannel status:', status, err || '')
+    stageChannelReady = status === 'SUBSCRIBED'
+    if (status === 'SUBSCRIBED') {
+      loadEligible()   // safe to send update-pool now
+    }
+  })
+
+  loadWinnersList()
+}
   function showLogin() {
     loginScreen.style.display = 'flex'
     controlScreen.style.display = 'none'
@@ -773,7 +782,11 @@
   }
 
   drawBtn.addEventListener('click', async () => {
-    if (isSpinning) return
+  if (isSpinning) return
+  if (!stageChannelReady) {
+    Swal.fire({ icon: 'error', title: 'Ralat sambungan', text: 'Skrin pentas belum bersambung. Sila muat semula halaman ini.' })
+    return
+  }
         const _limit = getCategoryLimit(categoryFilter)
           if (_limit !== null) {
             // eligibleBadge dikira semula setiap loadEligible(), jadi guna semula pastWinners terkini melalui semakan pantas
