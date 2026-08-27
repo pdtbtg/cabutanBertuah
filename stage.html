@@ -308,6 +308,25 @@ const SoundManager = (() => {
     src.stop(c.currentTime + duration)
   }
 
+    // ADSR envelope tone - guna untuk swell/chord yang lebih "immersive"
+  // (attack fade-in supaya bunyi tak terus 'terpotong' masuk, ada hold, then release)
+  function envTone(freq, { attack = 0.03, hold = 0.15, release = 0.4, type = 'sine', volume = 0.3 } = {}) {
+    if (!unlocked) return
+    const c = getCtx()
+    const osc = c.createOscillator()
+    const gain = c.createGain()
+    osc.type = type
+    osc.frequency.value = freq
+    const t0 = c.currentTime
+    gain.gain.setValueAtTime(0, t0)
+    gain.gain.linearRampToValueAtTime(volume, t0 + attack)
+    gain.gain.setValueAtTime(volume, t0 + attack + hold)
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + attack + hold + release)
+    osc.connect(gain).connect(c.destination)
+    osc.start(t0)
+    osc.stop(t0 + attack + hold + release + 0.05)
+  }
+
   function shakeStart() {
     if (!unlocked || shakeNode) return
     const c = getCtx()
@@ -335,13 +354,51 @@ const SoundManager = (() => {
     shakeStop,
     open:    () => noise({ duration: 0.6, volume: 0.35, filterFreq: 1200, filterType: 'highpass' }),
     release: () => noise({ duration: 0.25, volume: 0.12, filterFreq: 2000, filterType: 'bandpass' }),
-    pop: () => {
-      tone(150, 0.05, 'square', 0.4)
-      noise({ duration: 0.15, volume: 0.5, filterFreq: 3000, filterType: 'highpass' })
+        pop: () => {
+      if (!unlocked) return
+      const c = getCtx()
+      const t0 = c.currentTime
+
+      // "snap" - bandpass noise sweeping down fast, mimics rubber tension releasing
+      const snap = c.createBufferSource()
+      snap.buffer = createNoiseBuffer(0.15)
+      const snapFilter = c.createBiquadFilter()
+      snapFilter.type = 'bandpass'
+      snapFilter.Q.value = 6
+      snapFilter.frequency.setValueAtTime(3500, t0)
+      snapFilter.frequency.exponentialRampToValueAtTime(400, t0 + 0.12)
+      const snapGain = c.createGain()
+      snapGain.gain.setValueAtTime(0.7, t0)
+      snapGain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.13)
+      snap.connect(snapFilter).connect(snapGain).connect(c.destination)
+      snap.start(t0)
+      snap.stop(t0 + 0.15)
+
+      // sharp broadband click on top - the actual "crack" of the burst
+      const click = c.createBufferSource()
+      click.buffer = createNoiseBuffer(0.03)
+      const clickGain = c.createGain()
+      clickGain.gain.setValueAtTime(0.8, t0)
+      clickGain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.03)
+      click.connect(clickGain).connect(c.destination)
+      click.start(t0)
+      click.stop(t0 + 0.03)
     },
     reveal: () => {
-      const notes = [523.25, 659.25, 783.99, 1046.5] // C5 E5 G5 C6
-      notes.forEach((freq, i) => setTimeout(() => tone(freq, 0.5, 'sine', 0.25), i * 90))
+      // bass "impact" hit - gives it weight, like a ta-da downbeat
+      envTone(65.41, { attack: 0.01, hold: 0.05, release: 0.5, type: 'triangle', volume: 0.35 })  // C2
+
+      // triumphant major chord swell (C5-E5-G5-C6), fades in together
+      const chordFreqs = [523.25, 659.25, 783.99, 1046.5]
+      chordFreqs.forEach((f) =>
+        envTone(f, { attack: 0.04, hold: 0.3, release: 0.9, type: 'triangle', volume: 0.16 })
+      )
+
+      // sparkle arpeggio on top, staggered slightly after the chord swell starts
+      const sparkle = [1046.5, 1318.5, 1568, 2093]
+      sparkle.forEach((freq, i) => {
+        setTimeout(() => tone(freq, 0.35, 'sine', 0.15), 120 + i * 70)
+      })
     },
   }
 })()
