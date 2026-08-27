@@ -165,7 +165,7 @@
 <div id="vignette"></div>
 
 <div id="prizeOverlay">
-  <span class="winner-badge">🏆</span>
+  <span class="winner-badge" id="prizeIconBadge">🏆</span>
   <span class="winner-prize-badge" id="winnerPrizeBadge"></span>
 </div>
 
@@ -226,8 +226,8 @@
 
   const el = {
     prizeOverlay: document.getElementById('prizeOverlay'),
+    prizeIconBadge: document.getElementById('prizeIconBadge'),
     winnerPrizeBadge: document.getElementById('winnerPrizeBadge'),
-    winnerOverlay: document.getElementById('winnerOverlay'),
     winnerName: document.getElementById('winnerNameDisplay'),
     winnerMykad: document.getElementById('winnerMykadDisplay'),
     vignette: document.getElementById('vignette'),
@@ -258,6 +258,23 @@
     if (digits.length <= 4) return `(${digits})`
     const last4 = digits.slice(-4)
     return `(${'*'.repeat(digits.length - 4)}${last4})`
+  }
+
+    const PRIZE_ICON_MAP = [
+    { keywords: ['kereta', 'motor', 'motosikal'], icon: '🚗' },
+    { keywords: ['duit', 'wang tunai', 'cash', 'tunai'], icon: '💵' },
+    { keywords: ['voucher', 'baucar'], icon: '🎟️' },
+    { keywords: ['telefon', 'phone', 'handphone'], icon: '📱' },
+    { keywords: ['tv', 'televisyen'], icon: '📺' },
+    { keywords: ['makanan', 'hamper', 'food'], icon: '🎁' },
+    { keywords: ['jam', 'watch'], icon: '⌚' },
+    { keywords: ['basikal', 'bicycle'], icon: '🚲' },
+  ]
+  function pickPrizeIcon(prizeName) {
+    if (!prizeName) return '🏆'
+    const lower = prizeName.toLowerCase()
+    const match = PRIZE_ICON_MAP.find((entry) => entry.keywords.some((kw) => lower.includes(kw)))
+    return match ? match.icon : '🏆'
   }
 
   stageChannel
@@ -654,6 +671,7 @@
 
   function showPrizeOverlay(prizeName) {
     el.winnerPrizeBadge.textContent = prizeName || ''
+    el.prizeIconBadge.textContent = pickPrizeIcon(prizeName)
     el.prizeOverlay.classList.add('visible')
   }
 
@@ -673,6 +691,7 @@
     el.winnerOverlay.classList.remove('visible')
     el.prizeOverlay.classList.remove('visible')
     el.winnerPrizeBadge.textContent = ''
+    el.prizeIconBadge.textContent = '🏆'
     hemi.intensity = 0.95
     dirLight.intensity = 0.65
     lidOpenTarget = 0
