@@ -353,7 +353,34 @@ const SoundManager = (() => {
     shakeStart,
     shakeStop,
     open:    () => noise({ duration: 0.6, volume: 0.35, filterFreq: 1200, filterType: 'highpass' }),
-    release: () => noise({ duration: 0.25, volume: 0.12, filterFreq: 2000, filterType: 'bandpass' }),
+        release: () => {
+      if (!unlocked) return
+      const c = getCtx()
+      const t0 = c.currentTime
+
+      // soft airy whoosh - filtered noise with a gentle rise-then-fall sweep,
+      // no sharp attack, so it blends into a continuous "breath" instead of a pop
+      const dur = 0.35 + Math.random() * 0.15
+      const src = c.createBufferSource()
+      src.buffer = createNoiseBuffer(dur)
+      const filter = c.createBiquadFilter()
+      filter.type = 'bandpass'
+      filter.Q.value = 0.7
+      // rawak sikit setiap kali supaya tak bunyi sama berulang-ulang
+      const baseFreq = 900 + Math.random() * 600
+      filter.frequency.setValueAtTime(baseFreq * 0.5, t0)
+      filter.frequency.linearRampToValueAtTime(baseFreq, t0 + dur * 0.4)
+      filter.frequency.linearRampToValueAtTime(baseFreq * 0.6, t0 + dur)
+
+      const gain = c.createGain()
+      gain.gain.setValueAtTime(0, t0)
+      gain.gain.linearRampToValueAtTime(0.06, t0 + dur * 0.3)   // soft fade in, not instant
+      gain.gain.linearRampToValueAtTime(0.001, t0 + dur)         // soft fade out
+
+      src.connect(filter).connect(gain).connect(c.destination)
+      src.start(t0)
+      src.stop(t0 + dur)
+    },
         pop: () => {
       if (!unlocked) return
       const c = getCtx()
@@ -384,21 +411,45 @@ const SoundManager = (() => {
       click.start(t0)
       click.stop(t0 + 0.03)
     },
-    reveal: () => {
-      // bass "impact" hit - gives it weight, like a ta-da downbeat
-      envTone(65.41, { attack: 0.01, hold: 0.05, release: 0.5, type: 'triangle', volume: 0.35 })  // C2
+        reveal: () => {
+      if (!unlocked) return
+      const c = getCtx()
+      const t0 = c.currentTime
 
-      // triumphant major chord swell (C5-E5-G5-C6), fades in together
-      const chordFreqs = [523.25, 659.25, 783.99, 1046.5]
-      chordFreqs.forEach((f) =>
-        envTone(f, { attack: 0.04, hold: 0.3, release: 0.9, type: 'triangle', volume: 0.16 })
-      )
+      // "whoop!" - cepat naik pitch, macam gelak teruja / jeritan gembira
+      const whoop = c.createOscillator()
+      const whoopGain = c.createGain()
+      whoop.type = 'sawtooth'
+      whoop.frequency.setValueAtTime(300, t0)
+      whoop.frequency.exponentialRampToValueAtTime(1200, t0 + 0.22)
+      whoopGain.gain.setValueAtTime(0.001, t0)
+      whoopGain.gain.linearRampToValueAtTime(0.18, t0 + 0.05)
+      whoopGain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.3)
+      const whoopFilter = c.createBiquadFilter()
+      whoopFilter.type = 'lowpass'
+      whoopFilter.frequency.value = 2500
+      whoop.connect(whoopFilter).connect(whoopGain).connect(c.destination)
+      whoop.start(t0)
+      whoop.stop(t0 + 0.3)
 
-      // sparkle arpeggio on top, staggered slightly after the chord swell starts
-      const sparkle = [1046.5, 1318.5, 1568, 2093]
-      sparkle.forEach((freq, i) => {
-        setTimeout(() => tone(freq, 0.35, 'sine', 0.15), 120 + i * 70)
+      // bouncy ascending run - macam "ta-da-da-DAA!" pantas & ceria
+      const run = [523.25, 659.25, 783.99, 1046.5, 1318.5]  // C5 E5 G5 C6 E6
+      run.forEach((freq, i) => {
+        const delay = 220 + i * 65
+        setTimeout(() => tone(freq, 0.22, 'triangle', 0.22), delay)
       })
+
+      // gegar chord kemenangan besar di hujung, bersama sikit "sparkle" tinggi
+      const bigChordAt = 220 + run.length * 65 + 40
+      setTimeout(() => {
+        const t1 = c.currentTime
+        ;[523.25, 659.25, 783.99, 1046.5].forEach((f) =>
+          envTone(f, { attack: 0.02, hold: 0.25, release: 0.7, type: 'triangle', volume: 0.22 })
+        )
+        ;[1568, 2093, 2637].forEach((freq, i) => {
+          setTimeout(() => tone(freq, 0.3, 'sine', 0.12), i * 45)
+        })
+      }, bigChordAt)
     },
   }
 })()
