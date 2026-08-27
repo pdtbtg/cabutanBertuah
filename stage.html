@@ -327,6 +327,101 @@ const SoundManager = (() => {
     osc.stop(t0 + attack + hold + release + 0.05)
   }
 
+    // BRASS - beberapa oscillator sedikit "detuned" bersama (unison/chorus),
+  // dilalui lowpass yang sedikit resonant untuk bunyi "buzzy" macam brass section,
+  // dengan attack pantas + sustain pendek + release macam hembusan trompet
+  function brassNote(freq, { start = 0, duration = 0.45, volume = 0.22 } = {}) {
+    if (!unlocked) return
+    const c = getCtx()
+    const t0 = c.currentTime + start
+    const detunes = [-8, 0, 8, 12]  // beberapa "voice" sedikit off-pitch = ensemble brass
+
+    const masterGain = c.createGain()
+    masterGain.gain.setValueAtTime(0, t0)
+    masterGain.gain.linearRampToValueAtTime(volume, t0 + 0.02)      // attack pantas
+    masterGain.gain.setValueAtTime(volume, t0 + duration * 0.6)
+    masterGain.gain.exponentialRampToValueAtTime(0.001, t0 + duration)
+
+    const filter = c.createBiquadFilter()
+    filter.type = 'lowpass'
+    filter.frequency.value = freq * 4
+    filter.Q.value = 1.5
+    filter.connect(masterGain).connect(c.destination)
+
+    detunes.forEach((cents) => {
+      const osc = c.createOscillator()
+      osc.type = 'sawtooth'
+      osc.frequency.value = freq
+      osc.detune.value = cents
+      osc.connect(filter)
+      osc.start(t0)
+      osc.stop(t0 + duration + 0.05)
+    })
+  }
+
+  // TIMPANI - sine rendah dengan pitch drop pantas (ciri khas timpani) +
+  // sedikit "thump" noise untuk serangan awal
+  function timpaniHit({ start = 0, freq = 87.31, volume = 0.5 } = {}) {  // F2-ish
+    if (!unlocked) return
+    const c = getCtx()
+    const t0 = c.currentTime + start
+
+    const osc = c.createOscillator()
+    osc.type = 'sine'
+    osc.frequency.setValueAtTime(freq * 1.6, t0)
+    osc.frequency.exponentialRampToValueAtTime(freq, t0 + 0.15)
+
+    const gain = c.createGain()
+    gain.gain.setValueAtTime(volume, t0)
+    gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.9)
+
+    osc.connect(gain).connect(c.destination)
+    osc.start(t0)
+    osc.stop(t0 + 0.9)
+
+    // thump serangan - noise pendek dilalui lowpass ketat
+    const thump = c.createBufferSource()
+    thump.buffer = createNoiseBuffer(0.06)
+    const thumpFilter = c.createBiquadFilter()
+    thumpFilter.type = 'lowpass'
+    thumpFilter.frequency.value = 200
+    const thumpGain = c.createGain()
+    thumpGain.gain.setValueAtTime(volume * 0.8, t0)
+    thumpGain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.06)
+    thump.connect(thumpFilter).connect(thumpGain).connect(c.destination)
+    thump.start(t0)
+    thump.stop(t0 + 0.06)
+  }
+
+  // WIND CHIMES - beberapa nada tinggi rawak (skala pentatonik), setiap satu ada
+  // dua "partial" (fundamental + overtone sedikit tak harmoni) untuk bunyi macam loceng,
+  // dengan release panjang supaya "bergema"
+  function windChimes({ start = 0, count = 6, spread = 900 } = {}) {
+    if (!unlocked) return
+    const c = getCtx()
+    const pentatonic = [1046.5, 1174.7, 1318.5, 1567.98, 1760, 2093, 2349.3]
+
+    for (let i = 0; i < count; i++) {
+      const delay = start + Math.random() * spread
+      const freq = pentatonic[Math.floor(Math.random() * pentatonic.length)]
+      setTimeout(() => {
+        const t0 = c.currentTime
+        ;[freq, freq * 2.756].forEach((f, partialIdx) => {  // 2.756x ~ nada loceng tak harmoni
+          const osc = c.createOscillator()
+          osc.type = 'sine'
+          osc.frequency.value = f
+          const gain = c.createGain()
+          const vol = partialIdx === 0 ? 0.09 : 0.03
+          gain.gain.setValueAtTime(vol, t0)
+          gain.gain.exponentialRampToValueAtTime(0.001, t0 + 1.8)
+          osc.connect(gain).connect(c.destination)
+          osc.start(t0)
+          osc.stop(t0 + 1.8)
+        })
+      }, delay)
+    }
+  }
+
   function shakeStart() {
     if (!unlocked || shakeNode) return
     const c = getCtx()
@@ -411,45 +506,24 @@ const SoundManager = (() => {
       click.start(t0)
       click.stop(t0 + 0.03)
     },
-        reveal: () => {
-      if (!unlocked) return
-      const c = getCtx()
-      const t0 = c.currentTime
+            reveal: () => {
+      // TIMPANI - dua ketukan pembuka, macam "BOOM BOOM" sebelum fanfare masuk
+      timpaniHit({ start: 0,    freq: 87.31 })
+      timpaniHit({ start: 0.18, freq: 110 })
 
-      // "whoop!" - cepat naik pitch, macam gelak teruja / jeritan gembira
-      const whoop = c.createOscillator()
-      const whoopGain = c.createGain()
-      whoop.type = 'sawtooth'
-      whoop.frequency.setValueAtTime(300, t0)
-      whoop.frequency.exponentialRampToValueAtTime(1200, t0 + 0.22)
-      whoopGain.gain.setValueAtTime(0.001, t0)
-      whoopGain.gain.linearRampToValueAtTime(0.18, t0 + 0.05)
-      whoopGain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.3)
-      const whoopFilter = c.createBiquadFilter()
-      whoopFilter.type = 'lowpass'
-      whoopFilter.frequency.value = 2500
-      whoop.connect(whoopFilter).connect(whoopGain).connect(c.destination)
-      whoop.start(t0)
-      whoop.stop(t0 + 0.3)
+      // BRASS FANFARE - motif pendek naik, macam trompet ceremony
+      // (C5 - E5 - G5 - C6, note terakhir dipegang lebih lama)
+      brassNote(523.25, { start: 0.32, duration: 0.22, volume: 0.24 })
+      brassNote(659.25, { start: 0.50, duration: 0.22, volume: 0.24 })
+      brassNote(783.99, { start: 0.68, duration: 0.22, volume: 0.24 })
+      brassNote(1046.5, { start: 0.86, duration: 0.9,  volume: 0.3  })
 
-      // bouncy ascending run - macam "ta-da-da-DAA!" pantas & ceria
-      const run = [523.25, 659.25, 783.99, 1046.5, 1318.5]  // C5 E5 G5 C6 E6
-      run.forEach((freq, i) => {
-        const delay = 220 + i * 65
-        setTimeout(() => tone(freq, 0.22, 'triangle', 0.22), delay)
-      })
+      // timpani roll ringan di bawah nota brass yang dipegang panjang
+      timpaniHit({ start: 0.86, freq: 65.41, volume: 0.3 })
+      timpaniHit({ start: 1.02, freq: 65.41, volume: 0.25 })
 
-      // gegar chord kemenangan besar di hujung, bersama sikit "sparkle" tinggi
-      const bigChordAt = 220 + run.length * 65 + 40
-      setTimeout(() => {
-        const t1 = c.currentTime
-        ;[523.25, 659.25, 783.99, 1046.5].forEach((f) =>
-          envTone(f, { attack: 0.02, hold: 0.25, release: 0.7, type: 'triangle', volume: 0.22 })
-        )
-        ;[1568, 2093, 2637].forEach((freq, i) => {
-          setTimeout(() => tone(freq, 0.3, 'sine', 0.12), i * 45)
-        })
-      }, bigChordAt)
+      // WIND CHIMES - bertaburan masuk lepas fanfare, bagi kesan "magical sparkle"
+      windChimes({ start: 900, count: 8, spread: 1000 })
     },
   }
 })()
