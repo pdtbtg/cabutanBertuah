@@ -111,7 +111,7 @@
     box-shadow: 0 4px 14px rgba(255,204,0,0.35);
   }
   .winner-prize-badge:empty { display: none; }
-
+  .winner-badge:empty { display: none; }
   /* ---------------- Winner name + MyKad, fades in once the balloon pops, centered full-screen ---------------- */
   #winnerOverlay {
     position: fixed;
@@ -190,7 +190,6 @@
 <div id="vignette"></div>
 <button id="soundUnlockBtn" title="Aktifkan bunyi" aria-label="Aktifkan bunyi">🔇</button>
 <div id="prizeOverlay">
-  <span class="winner-badge" id="prizeIconBadge">🏆</span>
   <span class="winner-prize-badge" id="winnerPrizeBadge"></span>
 </div>
 
@@ -575,7 +574,7 @@ soundUnlockBtn.addEventListener('click', () => {
     { keywords: ['basikal', 'bicycle'], icon: '🚲' },
   ]
   function pickPrizeIcon(prizeName) {
-    if (!prizeName) return '🏆'
+    if (!prizeName) return ''
     const lower = prizeName.toLowerCase()
     const match = PRIZE_ICON_MAP.find((entry) => entry.keywords.some((kw) => lower.includes(kw)))
     return match ? match.icon : '🏆'
@@ -996,7 +995,7 @@ soundUnlockBtn.addEventListener('click', () => {
     el.winnerOverlay.classList.remove('visible')
     el.prizeOverlay.classList.remove('visible')
     el.winnerPrizeBadge.textContent = ''
-    el.prizeIconBadge.textContent = '🏆'
+    el.prizeIconBadge.textContent = ''
     hemi.intensity = 0.95
     dirLight.intensity = 0.65
     lidOpenTarget = 0
