@@ -258,6 +258,12 @@ const SoundManager = (() => {
   let unlocked = false
   let shakeNode = null
 
+  const revealAudio = new Audio('assets/winner-fanfare.mp3')
+  revealAudio.preload = 'auto'
+  revealAudio.volume = 0.85
+  revealAudio.load()
+  
+
   function getCtx() {
     if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)()
     return ctx
@@ -448,7 +454,7 @@ const SoundManager = (() => {
     shakeStart,
     shakeStop,
     open:    () => noise({ duration: 0.6, volume: 0.35, filterFreq: 1200, filterType: 'highpass' }),
-        release: () => {
+    release: () => {
       if (!unlocked) return
       const c = getCtx()
       const t0 = c.currentTime
@@ -476,7 +482,7 @@ const SoundManager = (() => {
       src.start(t0)
       src.stop(t0 + dur)
     },
-        pop: () => {
+    pop: () => {
       if (!unlocked) return
       const c = getCtx()
       const t0 = c.currentTime
@@ -506,24 +512,10 @@ const SoundManager = (() => {
       click.start(t0)
       click.stop(t0 + 0.03)
     },
-            reveal: () => {
-      // TIMPANI - dua ketukan pembuka, macam "BOOM BOOM" sebelum fanfare masuk
-      timpaniHit({ start: 0,    freq: 87.31 })
-      timpaniHit({ start: 0.18, freq: 110 })
-
-      // BRASS FANFARE - motif pendek naik, macam trompet ceremony
-      // (C5 - E5 - G5 - C6, note terakhir dipegang lebih lama)
-      brassNote(523.25, { start: 0.32, duration: 0.22, volume: 0.24 })
-      brassNote(659.25, { start: 0.50, duration: 0.22, volume: 0.24 })
-      brassNote(783.99, { start: 0.68, duration: 0.22, volume: 0.24 })
-      brassNote(1046.5, { start: 0.86, duration: 0.9,  volume: 0.3  })
-
-      // timpani roll ringan di bawah nota brass yang dipegang panjang
-      timpaniHit({ start: 0.86, freq: 65.41, volume: 0.3 })
-      timpaniHit({ start: 1.02, freq: 65.41, volume: 0.25 })
-
-      // WIND CHIMES - bertaburan masuk lepas fanfare, bagi kesan "magical sparkle"
-      windChimes({ start: 900, count: 8, spread: 1000 })
+    reveal: () => {
+      if (!unlocked) return
+      revealAudio.currentTime = 0   // reset in case previous draw's sound hasn't finished
+      revealAudio.play().catch(() => {})
     },
   }
 })()
