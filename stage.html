@@ -234,6 +234,7 @@
     balloonRiseSpeedMin: 0.9,   // unit/saat, semasa belon sudah keluar sepenuhnya
     balloonRiseSpeedMax: 1.6,
     balloonTopBound: 15,        // had atas skrin - belon dibuang selepas melepasi ini
+    normalHoverCeiling: 6,
 
     // pemenang meletup pada bila-bila masa rawak semasa penerbangannya, dalam julat ini (saat selepas ia keluar penuh)
     winnerPopDelayMinMs: 1800,
@@ -257,7 +258,7 @@
     preBurstScaleMult: 3.2,
     suspenseDelayMinMs: 700,
     suspenseDelayMaxMs: 1400,
-    hoverCeiling: 9,   // winner balloon holds here instead of drifting off-screen while waiting
+    hoverCeiling: 6,   // winner balloon holds here instead of drifting off-screen while waiting
   }
 
   /* ============================================================
@@ -1023,7 +1024,7 @@ soundUnlockBtn.addEventListener('click', () => {
     allReleasedTriggered = false
   }
 
-  function buildReleaseSchedule(payload) {
+    function buildReleaseSchedule(payload) {
     const winnerName = payload.winnerName
     const sourcePool = (payload.names && payload.names.length ? payload.names : candidatePool)
       .filter((n) => n !== winnerName)
@@ -1032,7 +1033,18 @@ soundUnlockBtn.addEventListener('click', () => {
     while (others.length < CONFIG.balloonCount - 1) {
       others.push(`Peserta ${fillIndex++}`)
     }
-    const order = cryptoShuffle([...others, winnerName])
+
+    let order
+    if (dramaticMode) {
+      // pemenang keluar lewat (2-3 terakhir) supaya ia sentiasa jadi salah satu
+      // belon terakhir yang masih di udara - lebih mudah dikesan penonton
+      const shuffledOthers = cryptoShuffle(others)
+      const lateSlot = shuffledOthers.length - cryptoRandomInt(3) // masuk pada 3 kedudukan terakhir
+      shuffledOthers.splice(lateSlot, 0, winnerName)
+      order = shuffledOthers
+    } else {
+      order = cryptoShuffle([...others, winnerName])
+    }
 
     let t = 0
     return order.map((name) => {
@@ -1146,8 +1158,11 @@ soundUnlockBtn.addEventListener('click', () => {
         b.group.position.z = mouth.z + b.layerZ + b.collisionOffsetZ
       } else {
         b.group.position.y += b.riseSpeed * dt
-        if (b.isWinner && dramaticMode && b.popAt === null && b.group.position.y > DRAMATIC.hoverCeiling) {
-          b.group.position.y = DRAMATIC.hoverCeiling
+        if (b.isWinner) {
+          const ceiling = dramaticMode ? DRAMATIC.hoverCeiling : CONFIG.normalHoverCeiling
+          b.group.position.y = Math.min(b.group.position.y + b.riseSpeed * dt, ceiling)
+        } else {
+          b.group.position.y += b.riseSpeed * dt
         }
         const riseT = clamp01((b.group.position.y - 1.5) / 12)
         b.group.position.x += (b.driftX * dt * 0.18)
