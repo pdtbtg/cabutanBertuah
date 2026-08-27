@@ -395,6 +395,9 @@
               </div>
               <div class="field-error" id="termsError" style="margin-top:-1.4dvh; margin-bottom: 1.4dvh;">Sila bersetuju dengan syarat dan terma untuk meneruskan.</div>
 
+              <input type="hidden" id="urus_setia" name="urus_setia" value="false">
+              <div class="d-grid">
+
               <div class="d-grid">
                 <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
                   <i class="bi bi-pencil-square"></i>
@@ -412,7 +415,7 @@
             </div>
             <h3>Berjaya, terima kasih <span class="success-name" id="successName"></span>!</h3>
             <p>Anda berjaya mendaftar untuk cabutan bertuah.</p>
-            <p>5 pemenang kategori awam akan diumumkan di pentas utama.</p>
+            <p id="successCategoryMsg"></p>
             <div class="success-badge">
               <i class="bi bi-megaphone-fill"></i>
               Nantikan pengumuman pada bila-bila masa
@@ -470,6 +473,7 @@
   const formView = document.getElementById('formView')
   const successView = document.getElementById('successView')
   const successName = document.getElementById('successName')
+  const successCategoryMsg = document.getElementById('successCategoryMsg')
   const registerAnotherBtn = document.getElementById('registerAnotherBtn')
 
   const errorView = document.getElementById('errorView')
@@ -600,6 +604,9 @@
 
     // Show inline success view
     successName.textContent = full_name
+    successCategoryMsg.textContent = isUrusSetia
+      ? '5 pemenang kategori Urus Setia / Peserta Kontinjen akan diumumkan di pentas utama.'
+      : '5 pemenang kategori awam akan diumumkan di pentas utama.'
     formView.style.display = 'none'
     errorView.style.display = 'none'
     successView.style.display = 'flex'
