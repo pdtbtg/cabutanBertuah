@@ -174,22 +174,32 @@
     padding: 5px;
     isolation: isolate;
   }
-  .cabut-wrap::before {
+  /* .ring-fx is a separate, overflow-clipped layer just for the spinning
+     gradient — clipping lived nowhere before, so the oversized ::before
+     square span was visible spinning past the rounded corners. Keeping
+     the box-shadow glow on .cabut-wrap itself (not clipped) avoids the
+     opposite problem of the glow getting cut off by that same clip. */
+  .ring-fx {
+    position: absolute;
+    inset: 0;
+    border-radius: 26px;
+    overflow: hidden;
+    z-index: 0;
+  }
+  .ring-fx::before {
     content: '';
     position: absolute;
     inset: -60%;
     background: conic-gradient(from 0deg,
       var(--jg-red) 0deg, var(--jg-gold) 120deg, var(--jg-blue-light) 240deg, var(--jg-red) 360deg);
     animation: ringSpin 7s linear infinite;
-    z-index: 0;
   }
-  .cabut-wrap::after {
+  .ring-fx::after {
     content: '';
     position: absolute;
     inset: 5px;
     background: var(--ring-mask);
     border-radius: 22px;
-    z-index: 0;
     transition: background 0.2s ease;
   }
   .cabut-wrap .d-grid { position: relative; z-index: 1; }
@@ -199,7 +209,7 @@
     padding: 7px;
     animation: ringGlowPulse 0.9s ease-in-out infinite;
   }
-  .cabut-wrap.is-drawing::before {
+  .cabut-wrap.is-drawing .ring-fx::before {
     animation: ringSpin 0.9s linear infinite;
   }
   @keyframes ringGlowPulse {
@@ -237,7 +247,7 @@
     50% { transform: scale(1.012); }
   }
   @media (prefers-reduced-motion: reduce) {
-    .cabut-wrap::before, .cabut-wrap.is-drawing, #drawBtn { animation: none !important; }
+    .ring-fx::before, .cabut-wrap.is-drawing, #drawBtn { animation: none !important; }
   }
 
   body.vvip-mode .cabut-wrap { --ring-mask: transparent; }
@@ -271,7 +281,7 @@
     padding: 6dvh 6vw;
   }
   body.vvip-mode #drawCard > * { width: 100%; max-width: 560px; }
-  body.vvip-mode #vvipPrizeDisplay { color: #fff; }
+  body.vvip-mode #vvipPrizeDisplay { display: block; color: #fff; }
   body.vvip-mode #vvipPrizeDisplay .text-muted { color: rgba(255,255,255,0.65) !important; }
   body.vvip-mode #lastWinnerBox { color: #fff; }
   body.vvip-mode #lastWinnerBox .text-primary { color: var(--jg-gold) !important; }
@@ -286,6 +296,24 @@
     box-shadow: 0 4px 14px rgba(255,204,0,0.35);
   }
   #vvipPrizeText:empty { display: none; }
+  /* Category is crucial context on the big-screen VVIP view (which team is
+     being drawn for), so it's hidden in the detailed panel — where the
+     switches above are already visible — and only surfaces here. */
+  #vvipCategoryWrap { display: none; }
+  body.vvip-mode #vvipCategoryWrap { display: block; margin-bottom: 1.4dvh; }
+  #vvipCategoryBadge {
+    display: inline-block;
+    font-weight: 800;
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.4rem 1.1rem;
+    border-radius: 999px;
+    color: #fff;
+  }
+  #vvipCategoryBadge.cat-all { background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.5); }
+  #vvipCategoryBadge.cat-public { background: var(--jg-blue-light); }
+  #vvipCategoryBadge.cat-organizer { background: var(--jg-red); }
   .vvip-exit-btn {
     position: fixed;
     top: 14px;
@@ -300,7 +328,7 @@
 
 <div id="loginScreen">
   <div class="login-brand">
-    <div class="eyebrow">Program Semarak Jalur Gemilang · Daerah Bentong 2026</div>
+    <div class="eyebrow">Sambutan Hari Kebangsaan Ke-69 · Daerah Bentong 2026</div>
     <div class="flag-strip-mini"></div>
   </div>
   <div id="loginCard">
@@ -327,8 +355,8 @@
 
 <div id="controlScreen">
   <div class="control-brand-bar">
-    <div class="eyebrow">Program Semarak Jalur Gemilang</div>
-    <div class="title">DAERAH BENTONG 2026</div>
+    <div class="eyebrow">Sambutan Hari Kebangsaan Ke-69</div>
+    <div class="title">PERINGKAT DAERAH BENTONG 2026</div>
   </div>
   <div class="control-inner">
   <button class="btn btn-sm btn-light vvip-exit-btn" id="vvipExitBtn" style="display:none;">✕ Keluar Mod Simple</button>
@@ -372,6 +400,9 @@
     <div class="d-flex justify-content-between align-items-center mb-3" id="eligibleRow">
       <span class="eligible-badge" id="eligibleBadge">Memuatkan...</span>
     </div>
+    <div class="text-center" id="vvipCategoryWrap">
+      <span id="vvipCategoryBadge"></span>
+    </div>
     <div id="setupFields">
       <label class="form-label fw-semibold">Nama Hadiah <span class="text-muted fw-normal">(pilihan)</span></label>
       <input type="text" class="form-control mb-3" id="prizeName" placeholder="cth: Voucher RM100 (kosongkan jika tiada)">
@@ -381,6 +412,7 @@
       <div class="fw-bold fs-3" id="vvipPrizeText"></div>
     </div>
     <div class="cabut-wrap" id="cabutWrap">
+      <div class="ring-fx"></div>
       <div class="d-grid">
         <button class="btn btn-primary btn-lg" id="drawBtn">🎉 Cabut Sekarang</button>
       </div>
@@ -435,6 +467,7 @@
   const vvipToggleBtn = document.getElementById('vvipToggleBtn')
   const vvipExitBtn = document.getElementById('vvipExitBtn')
   const vvipPrizeText = document.getElementById('vvipPrizeText')
+  const vvipCategoryBadge = document.getElementById('vvipCategoryBadge')
 
   let currentUser = null
   let currentDrawId = null   // auto-created draws row for the active date window
@@ -501,14 +534,26 @@
   // Guna class="form-check form-switch" untuk setiap pilihan; JS menguatkuasakan
   // hanya satu suis aktif pada satu masa (menekan satu akan mematikan yang lain,
   // dan menekan suis yang sudah aktif tidak dibenarkan dimatikan sendiri).
+  const CATEGORY_LABELS = {
+    all: 'Semua Peserta',
+    public: 'Peserta Awam',
+    organizer: 'Peserta Urus Setia'
+  }
+  function updateCategoryBadge() {
+    vvipCategoryBadge.textContent = CATEGORY_LABELS[categoryFilter]
+    vvipCategoryBadge.className = `cat-${categoryFilter}`
+  }
+
   function setCategoryFilter(next) {
     categoryFilter = next
     catAll.checked = next === 'all'
     catPublic.checked = next === 'public'
     catOrganizer.checked = next === 'organizer'
+    updateCategoryBadge()
     currentDrawId = null   // kumpulan layak berubah = sesi baharu
     loadEligible()
   }
+  updateCategoryBadge()
   catAll.addEventListener('change', () => { if (catAll.checked) setCategoryFilter('all'); else catAll.checked = true })
   catPublic.addEventListener('change', () => { if (catPublic.checked) setCategoryFilter('public'); else catPublic.checked = true })
   catOrganizer.addEventListener('change', () => { if (catOrganizer.checked) setCategoryFilter('organizer'); else catOrganizer.checked = true })
