@@ -85,7 +85,6 @@
   /* ---------------- Prize label, floats above the 3D scene during a draw ---------------- */
   #prizeOverlay {
     position: fixed;
-    top: 13dvh;
     left: 0;
     right: 0;
     z-index: 20;
@@ -219,6 +218,13 @@
     vignette: document.getElementById('vignette'),
     canvas: document.getElementById('three-canvas'),
   }
+
+  function positionPrizeOverlay() {
+    const barHeight = document.querySelector('.stage-brand-bar').offsetHeight
+    el.prizeOverlay.style.top = `${barHeight + 12}px`
+  }
+  positionPrizeOverlay()
+  window.addEventListener('resize', positionPrizeOverlay)
 
   /* ============================================================
      SUPABASE REALTIME (kekal sama seperti sebelum ini)
