@@ -291,12 +291,14 @@ const SoundManager = (() => {
       ])
       popBuffer = pop
       revealBuffer = reveal
+      popOnset = findOnsetOffset(pop)
+      revealOnset = findOnsetOffset(reveal)
     } catch (e) {
       console.error('[SoundManager] gagal memuatkan fail audio:', e)
     }
   })()
 
-  function playBuffer(buffer, { volume = 1, delay = 0 } = {}) {
+  function playBuffer(buffer, { volume = 1, delay = 0, offset = 0 } = {}) {
     if (!unlocked || !buffer) return
     const c = getCtx()
     const src = c.createBufferSource()
@@ -304,7 +306,7 @@ const SoundManager = (() => {
     const gain = c.createGain()
     gain.gain.value = volume
     src.connect(gain).connect(c.destination)
-    src.start(c.currentTime + delay)
+    src.start(c.currentTime + delay, offset)   // ← offset skips leading silence
     return src
   }
 
@@ -401,8 +403,8 @@ const SoundManager = (() => {
       src.start(t0)
       src.stop(t0 + dur)
     },
-    pop:    () => playBuffer(popBuffer, { volume: 0.9 }),
-    reveal: () => playBuffer(revealBuffer, { volume: 0.85, delay: 0.12 }),
+    pop:    () => playBuffer(popBuffer, { volume: 0.9, offset: popOnset }),
+    reveal: () => playBuffer(revealBuffer, { volume: 0.85, delay: 0.08, offset: revealOnset }),
   }
 })()
 
@@ -1214,6 +1216,19 @@ soundUnlockBtn.addEventListener('click', () => {
     renderer.render(scene, camera)
   }
   animate()
+
+  function findOnsetOffset(buffer, threshold = 0.04) {
+    const data = buffer.getChannelData(0)
+    for (let i = 0; i < data.length; i++) {
+      if (Math.abs(data[i]) > threshold) {
+        return Math.max(0, i / buffer.sampleRate - 0.005) // sedikit ruang (5ms) sebelum transient
+      }
+    }
+    return 0
+  }
+
+  let popOnset = 0
+  let revealOnset = 0
 </script>
 
 </body>
