@@ -277,9 +277,6 @@ const SoundManager = (() => {
     return ctx
   }
 
-  // pra-muat & decode kedua-dua MP3 ke AudioBuffer - membolehkan main dengan
-  // latensi rendah & masa yang tepat (sample-accurate) melalui jam AudioContext
-  // yang sama, tidak seperti elemen <audio> yang latensinya tak boleh diramal
   async function loadBuffer(url) {
     const c = getCtx()
     const res = await fetch(url)
@@ -316,20 +313,6 @@ const SoundManager = (() => {
     if (c.state === 'suspended') c.resume()
     unlocked = true
   }
-
-  // ... createNoiseBuffer, tone, noise, envTone, brassNote, timpaniHit, windChimes, shakeStart, shakeStop unchanged ...
-
-  return {
-    unlock,
-    click:   () => tone(880, 0.08, 'square', 0.2),
-    shakeStart,
-    shakeStop,
-    open:    () => noise({ duration: 0.6, volume: 0.35, filterFreq: 1200, filterType: 'highpass' }),
-    release: () => { /* unchanged */ },
-    pop: () => playBuffer(popBuffer, { volume: 0.9 }),
-    reveal: () => playBuffer(revealBuffer, { volume: 0.85, delay: 0.12 }),  // 120ms stagger, scheduled on the same clock
-  }
-})()
 
   function createNoiseBuffer(duration) {
     const c = getCtx()
@@ -370,120 +353,6 @@ const SoundManager = (() => {
     src.stop(c.currentTime + duration)
   }
 
-    // ADSR envelope tone - guna untuk swell/chord yang lebih "immersive"
-  // (attack fade-in supaya bunyi tak terus 'terpotong' masuk, ada hold, then release)
-  function envTone(freq, { attack = 0.03, hold = 0.15, release = 0.4, type = 'sine', volume = 0.3 } = {}) {
-    if (!unlocked) return
-    const c = getCtx()
-    const osc = c.createOscillator()
-    const gain = c.createGain()
-    osc.type = type
-    osc.frequency.value = freq
-    const t0 = c.currentTime
-    gain.gain.setValueAtTime(0, t0)
-    gain.gain.linearRampToValueAtTime(volume, t0 + attack)
-    gain.gain.setValueAtTime(volume, t0 + attack + hold)
-    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + attack + hold + release)
-    osc.connect(gain).connect(c.destination)
-    osc.start(t0)
-    osc.stop(t0 + attack + hold + release + 0.05)
-  }
-
-    // BRASS - beberapa oscillator sedikit "detuned" bersama (unison/chorus),
-  // dilalui lowpass yang sedikit resonant untuk bunyi "buzzy" macam brass section,
-  // dengan attack pantas + sustain pendek + release macam hembusan trompet
-  function brassNote(freq, { start = 0, duration = 0.45, volume = 0.22 } = {}) {
-    if (!unlocked) return
-    const c = getCtx()
-    const t0 = c.currentTime + start
-    const detunes = [-8, 0, 8, 12]  // beberapa "voice" sedikit off-pitch = ensemble brass
-
-    const masterGain = c.createGain()
-    masterGain.gain.setValueAtTime(0, t0)
-    masterGain.gain.linearRampToValueAtTime(volume, t0 + 0.02)      // attack pantas
-    masterGain.gain.setValueAtTime(volume, t0 + duration * 0.6)
-    masterGain.gain.exponentialRampToValueAtTime(0.001, t0 + duration)
-
-    const filter = c.createBiquadFilter()
-    filter.type = 'lowpass'
-    filter.frequency.value = freq * 4
-    filter.Q.value = 1.5
-    filter.connect(masterGain).connect(c.destination)
-
-    detunes.forEach((cents) => {
-      const osc = c.createOscillator()
-      osc.type = 'sawtooth'
-      osc.frequency.value = freq
-      osc.detune.value = cents
-      osc.connect(filter)
-      osc.start(t0)
-      osc.stop(t0 + duration + 0.05)
-    })
-  }
-
-  // TIMPANI - sine rendah dengan pitch drop pantas (ciri khas timpani) +
-  // sedikit "thump" noise untuk serangan awal
-  function timpaniHit({ start = 0, freq = 87.31, volume = 0.5 } = {}) {  // F2-ish
-    if (!unlocked) return
-    const c = getCtx()
-    const t0 = c.currentTime + start
-
-    const osc = c.createOscillator()
-    osc.type = 'sine'
-    osc.frequency.setValueAtTime(freq * 1.6, t0)
-    osc.frequency.exponentialRampToValueAtTime(freq, t0 + 0.15)
-
-    const gain = c.createGain()
-    gain.gain.setValueAtTime(volume, t0)
-    gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.9)
-
-    osc.connect(gain).connect(c.destination)
-    osc.start(t0)
-    osc.stop(t0 + 0.9)
-
-    // thump serangan - noise pendek dilalui lowpass ketat
-    const thump = c.createBufferSource()
-    thump.buffer = createNoiseBuffer(0.06)
-    const thumpFilter = c.createBiquadFilter()
-    thumpFilter.type = 'lowpass'
-    thumpFilter.frequency.value = 200
-    const thumpGain = c.createGain()
-    thumpGain.gain.setValueAtTime(volume * 0.8, t0)
-    thumpGain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.06)
-    thump.connect(thumpFilter).connect(thumpGain).connect(c.destination)
-    thump.start(t0)
-    thump.stop(t0 + 0.06)
-  }
-
-  // WIND CHIMES - beberapa nada tinggi rawak (skala pentatonik), setiap satu ada
-  // dua "partial" (fundamental + overtone sedikit tak harmoni) untuk bunyi macam loceng,
-  // dengan release panjang supaya "bergema"
-  function windChimes({ start = 0, count = 6, spread = 900 } = {}) {
-    if (!unlocked) return
-    const c = getCtx()
-    const pentatonic = [1046.5, 1174.7, 1318.5, 1567.98, 1760, 2093, 2349.3]
-
-    for (let i = 0; i < count; i++) {
-      const delay = start + Math.random() * spread
-      const freq = pentatonic[Math.floor(Math.random() * pentatonic.length)]
-      setTimeout(() => {
-        const t0 = c.currentTime
-        ;[freq, freq * 2.756].forEach((f, partialIdx) => {  // 2.756x ~ nada loceng tak harmoni
-          const osc = c.createOscillator()
-          osc.type = 'sine'
-          osc.frequency.value = f
-          const gain = c.createGain()
-          const vol = partialIdx === 0 ? 0.09 : 0.03
-          gain.gain.setValueAtTime(vol, t0)
-          gain.gain.exponentialRampToValueAtTime(0.001, t0 + 1.8)
-          osc.connect(gain).connect(c.destination)
-          osc.start(t0)
-          osc.stop(t0 + 1.8)
-        })
-      }, delay)
-    }
-  }
-
   function shakeStart() {
     if (!unlocked || shakeNode) return
     const c = getCtx()
@@ -514,41 +383,26 @@ const SoundManager = (() => {
       if (!unlocked) return
       const c = getCtx()
       const t0 = c.currentTime
-
-      // soft airy whoosh - filtered noise with a gentle rise-then-fall sweep,
-      // no sharp attack, so it blends into a continuous "breath" instead of a pop
       const dur = 0.35 + Math.random() * 0.15
       const src = c.createBufferSource()
       src.buffer = createNoiseBuffer(dur)
       const filter = c.createBiquadFilter()
       filter.type = 'bandpass'
       filter.Q.value = 0.7
-      // rawak sikit setiap kali supaya tak bunyi sama berulang-ulang
       const baseFreq = 900 + Math.random() * 600
       filter.frequency.setValueAtTime(baseFreq * 0.5, t0)
       filter.frequency.linearRampToValueAtTime(baseFreq, t0 + dur * 0.4)
       filter.frequency.linearRampToValueAtTime(baseFreq * 0.6, t0 + dur)
-
       const gain = c.createGain()
       gain.gain.setValueAtTime(0, t0)
-      gain.gain.linearRampToValueAtTime(0.06, t0 + dur * 0.3)   // soft fade in, not instant
-      gain.gain.linearRampToValueAtTime(0.001, t0 + dur)         // soft fade out
-
+      gain.gain.linearRampToValueAtTime(0.06, t0 + dur * 0.3)
+      gain.gain.linearRampToValueAtTime(0.001, t0 + dur)
       src.connect(filter).connect(gain).connect(c.destination)
       src.start(t0)
       src.stop(t0 + dur)
     },
-    pop: () => {
-      if (!unlocked) return
-      popAudio.currentTime = 0
-      popAudio.play().catch(() => {})
-    },
-    reveal: () => {
-      if (!unlocked) return
-      revealAudio.currentTime = 0   // reset in case previous draw's sound hasn't finished
-      revealAudio.play().catch(() => {})
-      setTimeout(() => { revealAudio.volume = 0.85 }, 150)
-    },
+    pop:    () => playBuffer(popBuffer, { volume: 0.9 }),
+    reveal: () => playBuffer(revealBuffer, { volume: 0.85, delay: 0.12 }),
   }
 })()
 
