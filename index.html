@@ -500,7 +500,13 @@
   })
 
   // Focus the name field so participants can start typing right away.
-  fullNameInput.focus()
+  window.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => fullNameInput.focus(), 100)
+  })
+  // Fallback in case DOMContentLoaded already fired before this script ran
+  if (document.readyState === 'interactive' || document.readyState === 'complete') {
+    setTimeout(() => fullNameInput.focus(), 100)
+  }
 
   fullNameInput.addEventListener('input', () => {
     const cursorPos = fullNameInput.selectionStart
