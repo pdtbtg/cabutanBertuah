@@ -195,7 +195,7 @@
     const row = document.createElement('div')
     row.className = 'winner-row' + (isNew ? ' new-flash' : '')
     row.innerHTML = `
-      <div class="prize-badge">${winner.prize_number}</div>
+      <div class="prize-badge">${winner.mystery_prize_number}</div>
       <div class="winner-info">
         <div class="w-name">${winner.full_name}</div>
         <div class="w-meta">No. MyKad: ${winner.mykad_number} &middot; Giliran #${winner.reg_position}</div>
@@ -209,8 +209,8 @@
   }
 
   function renderAll(winners) {
-    const publicWinners = winners.filter(w => !w.urus_setia).sort((a, b) => a.prize_number - b.prize_number)
-    const urusSetiaWinners = winners.filter(w => w.urus_setia).sort((a, b) => a.prize_number - b.prize_number)
+    const publicWinners = winners.filter(w => !w.urus_setia).sort((a, b) => a.mystery_prize_number - b.mystery_prize_number)
+    const urusSetiaWinners = winners.filter(w => w.urus_setia).sort((a, b) => a.mystery_prize_number - b.mystery_prize_number)
 
     publicCount.textContent = `${publicWinners.length} / ${MAX_WINNERS_PER_CATEGORY}`
     urusSetiaCount.textContent = `${urusSetiaWinners.length} / ${MAX_WINNERS_PER_CATEGORY}`
@@ -236,7 +236,7 @@
   async function fetchWinners() {
     const { data, error } = await supabase
       .from('participants')
-      .select('full_name, mykad_number, urus_setia, reg_position, prize_number')
+      .select('full_name, mykad_number, urus_setia, reg_position, mystery_prize_number')
       .eq('is_mystery_winner', true)
 
     if (error) {
