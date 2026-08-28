@@ -18,7 +18,7 @@
     height: 100dvh;
     margin: 0;
     overflow: hidden;
-    background: rgba(10, 10, 10, 0.5);
+    background: rgba(10, 10, 10, 0.8);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
 
@@ -111,7 +111,7 @@
     box-shadow: 0 4px 14px rgba(255,204,0,0.35);
   }
   .winner-prize-badge:empty { display: none; }
-
+  .winner-badge:empty { display: none; }
   /* ---------------- Winner name + MyKad, fades in once the balloon pops, centered full-screen ---------------- */
   #winnerOverlay {
     position: fixed;
@@ -151,6 +151,31 @@
     letter-spacing: 0.06em;
     margin-top: 2dvh;
   }
+  #soundUnlockBtn {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  z-index: 40;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0,0,0,0.35);
+  color: rgba(237, 12, 12);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.3s ease;
+  opacity: 0.55;
+}
+#soundUnlockBtn:hover { opacity: 1; }
+#soundUnlockBtn.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
 </style>
 </head>
 <body>
@@ -163,9 +188,9 @@
 
 <canvas id="three-canvas"></canvas>
 <div id="vignette"></div>
-
+<button id="soundUnlockBtn" title="Aktifkan bunyi" aria-label="Aktifkan bunyi">🔇</button>
 <div id="prizeOverlay">
-  <span class="winner-badge" id="prizeIconBadge">🏆</span>
+  <span class="winner-badge" id="prizeIconBadge"></span>
   <span class="winner-prize-badge" id="winnerPrizeBadge"></span>
 </div>
 
@@ -209,6 +234,7 @@
     balloonRiseSpeedMin: 0.9,   // unit/saat, semasa belon sudah keluar sepenuhnya
     balloonRiseSpeedMax: 1.6,
     balloonTopBound: 15,        // had atas skrin - belon dibuang selepas melepasi ini
+    normalHoverCeiling: 6,
 
     // pemenang meletup pada bila-bila masa rawak semasa penerbangannya, dalam julat ini (saat selepas ia keluar penuh)
     winnerPopDelayMinMs: 1800,
@@ -223,6 +249,170 @@
     balloonSeparationMargin: 0.18,   // jarak tambahan (unit dunia) antara jejari dua belon
     balloonSeparationStrength: 10,   // kelajuan pembetulan jarak (semakin besar = semakin cepat menolak)
   }
+
+    const DRAMATIC = {
+    riseSpeedMin: 0.45,
+    riseSpeedMax: 0.75,
+    balloonEmergeMs: 950,
+    preBurstGrowMs: 1600,
+    preBurstScaleMult: 3.2,
+    suspenseDelayMinMs: 700,
+    suspenseDelayMaxMs: 1400,
+    hoverCeiling: 6,   // winner balloon holds here instead of drifting off-screen while waiting
+  }
+
+  /* ============================================================
+   SOUND MANAGER - synthesized audio via Web Audio API
+   Tiada fail audio diperlukan; semua bunyi dijana secara prosedural.
+   ============================================================ */
+const SoundManager = (() => {
+  let ctx = null
+  let unlocked = false
+  let shakeNode = null
+  let popBuffer = null
+  let revealBuffer = null
+
+  function getCtx() {
+    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)()
+    return ctx
+  }
+
+  async function loadBuffer(url) {
+    const c = getCtx()
+    const res = await fetch(url)
+    const arr = await res.arrayBuffer()
+    return await c.decodeAudioData(arr)
+  }
+  ;(async () => {
+    try {
+      const [pop, reveal] = await Promise.all([
+        loadBuffer('assets/balloon-pop.mp3'),
+        loadBuffer('assets/winner-fanfare.mp3'),
+      ])
+      popBuffer = pop
+      revealBuffer = reveal
+      popOnset = findOnsetOffset(pop)
+      revealOnset = findOnsetOffset(reveal)
+    } catch (e) {
+      console.error('[SoundManager] gagal memuatkan fail audio:', e)
+    }
+  })()
+
+  function playBuffer(buffer, { volume = 1, delay = 0, offset = 0 } = {}) {
+    if (!unlocked || !buffer) return
+    const c = getCtx()
+    const src = c.createBufferSource()
+    src.buffer = buffer
+    const gain = c.createGain()
+    gain.gain.value = volume
+    src.connect(gain).connect(c.destination)
+    src.start(c.currentTime + delay, offset)   // ← offset skips leading silence
+    return src
+  }
+
+  function unlock() {
+    const c = getCtx()
+    if (c.state === 'suspended') c.resume()
+    unlocked = true
+  }
+
+  function createNoiseBuffer(duration) {
+    const c = getCtx()
+    const bufferSize = c.sampleRate * duration
+    const buffer = c.createBuffer(1, bufferSize, c.sampleRate)
+    const data = buffer.getChannelData(0)
+    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1
+    return buffer
+  }
+
+  function tone(freq, duration = 0.3, type = 'sine', volume = 0.3) {
+    if (!unlocked) return
+    const c = getCtx()
+    const osc = c.createOscillator()
+    const gain = c.createGain()
+    osc.type = type
+    osc.frequency.value = freq
+    gain.gain.setValueAtTime(volume, c.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + duration)
+    osc.connect(gain).connect(c.destination)
+    osc.start()
+    osc.stop(c.currentTime + duration)
+  }
+
+  function noise({ duration = 0.5, volume = 0.3, filterFreq = 800, filterType = 'bandpass' } = {}) {
+    if (!unlocked) return
+    const c = getCtx()
+    const src = c.createBufferSource()
+    src.buffer = createNoiseBuffer(duration)
+    const filter = c.createBiquadFilter()
+    filter.type = filterType
+    filter.frequency.value = filterFreq
+    const gain = c.createGain()
+    gain.gain.setValueAtTime(volume, c.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + duration)
+    src.connect(filter).connect(gain).connect(c.destination)
+    src.start()
+    src.stop(c.currentTime + duration)
+  }
+
+  function shakeStart() {
+    if (!unlocked || shakeNode) return
+    const c = getCtx()
+    const src = c.createBufferSource()
+    src.buffer = createNoiseBuffer(2)
+    src.loop = true
+    const filter = c.createBiquadFilter()
+    filter.type = 'lowpass'
+    filter.frequency.value = 200
+    const gain = c.createGain()
+    gain.gain.value = 0.25
+    src.connect(filter).connect(gain).connect(c.destination)
+    src.start()
+    shakeNode = src
+  }
+
+  function shakeStop() {
+    if (shakeNode) { shakeNode.stop(); shakeNode = null }
+  }
+
+  return {
+    unlock,
+    click:   () => tone(880, 0.08, 'square', 0.2),
+    shakeStart,
+    shakeStop,
+    open:    () => noise({ duration: 0.6, volume: 0.35, filterFreq: 1200, filterType: 'highpass' }),
+    release: () => {
+      if (!unlocked) return
+      const c = getCtx()
+      const t0 = c.currentTime
+      const dur = 0.35 + Math.random() * 0.15
+      const src = c.createBufferSource()
+      src.buffer = createNoiseBuffer(dur)
+      const filter = c.createBiquadFilter()
+      filter.type = 'bandpass'
+      filter.Q.value = 0.7
+      const baseFreq = 900 + Math.random() * 600
+      filter.frequency.setValueAtTime(baseFreq * 0.5, t0)
+      filter.frequency.linearRampToValueAtTime(baseFreq, t0 + dur * 0.4)
+      filter.frequency.linearRampToValueAtTime(baseFreq * 0.6, t0 + dur)
+      const gain = c.createGain()
+      gain.gain.setValueAtTime(0, t0)
+      gain.gain.linearRampToValueAtTime(0.06, t0 + dur * 0.3)
+      gain.gain.linearRampToValueAtTime(0.001, t0 + dur)
+      src.connect(filter).connect(gain).connect(c.destination)
+      src.start(t0)
+      src.stop(t0 + dur)
+    },
+    pop:    () => playBuffer(popBuffer, { volume: 0.9, offset: popOnset }),
+    reveal: () => playBuffer(revealBuffer, { volume: 0.85, delay: 0.08, offset: revealOnset }),
+  }
+})()
+
+const soundUnlockBtn = document.getElementById('soundUnlockBtn')
+soundUnlockBtn.addEventListener('click', () => {
+  SoundManager.unlock()
+  soundUnlockBtn.classList.add('hidden')
+}, { once: true })
 
   const el = {
     prizeOverlay: document.getElementById('prizeOverlay'),
@@ -273,7 +463,7 @@
     { keywords: ['basikal', 'bicycle'], icon: '🚲' },
   ]
   function pickPrizeIcon(prizeName) {
-    if (!prizeName) return '🏆'
+    if (!prizeName) return ''
     const lower = prizeName.toLowerCase()
     const match = PRIZE_ICON_MAP.find((entry) => entry.keywords.some((kw) => lower.includes(kw)))
     return match ? match.icon : '🏆'
@@ -620,9 +810,10 @@
     geo.setAttribute('color', new THREE.BufferAttribute(colors, 3))
     const mat = new THREE.PointsMaterial({
       size: 0.18, vertexColors: true, transparent: true, opacity: 1,
-      depthWrite: false, blending: THREE.AdditiveBlending,
+      depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending,
     })
     const points = new THREE.Points(geo, mat)
+    points.renderOrder = 999
     points.userData = { velocities, life: 0, maxLife: 3.2 }
     scene.add(points)
     activeConfetti.push(points)
@@ -665,6 +856,8 @@
   let activeBalloons = []    // belon yang sedang di udara
   let winnerRevealed = false
   let currentWinnerMykad = ''
+  let dramaticMode = false
+  let allReleasedTriggered = false
 
   function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3) }
   function easeOutBack(t) { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2) }
@@ -693,7 +886,7 @@
     el.winnerOverlay.classList.remove('visible')
     el.prizeOverlay.classList.remove('visible')
     el.winnerPrizeBadge.textContent = ''
-    el.prizeIconBadge.textContent = '🏆'
+    el.prizeIconBadge.textContent = ''
     hemi.intensity = 0.95
     dirLight.intensity = 0.65
     lidOpenTarget = 0
@@ -703,9 +896,11 @@
     winnerRevealed = false
     releaseSchedule = []
     nextScheduleIndex = 0
+    dramaticMode = false
+    allReleasedTriggered = false
   }
 
-  function buildReleaseSchedule(payload) {
+    function buildReleaseSchedule(payload) {
     const winnerName = payload.winnerName
     const sourcePool = (payload.names && payload.names.length ? payload.names : candidatePool)
       .filter((n) => n !== winnerName)
@@ -714,7 +909,18 @@
     while (others.length < CONFIG.balloonCount - 1) {
       others.push(`Peserta ${fillIndex++}`)
     }
-    const order = cryptoShuffle([...others, winnerName])
+
+    let order
+    if (dramaticMode) {
+      // pemenang keluar lewat (2-3 terakhir) supaya ia sentiasa jadi salah satu
+      // belon terakhir yang masih di udara - lebih mudah dikesan penonton
+      const shuffledOthers = cryptoShuffle(others)
+      const lateSlot = shuffledOthers.length - cryptoRandomInt(3) // masuk pada 3 kedudukan terakhir
+      shuffledOthers.splice(lateSlot, 0, winnerName)
+      order = shuffledOthers
+    } else {
+      order = cryptoShuffle([...others, winnerName])
+    }
 
     let t = 0
     return order.map((name) => {
@@ -725,6 +931,8 @@
 
   function startDraw(payload) {
     clearStage()
+    dramaticMode = payload.category === 'all'
+    allReleasedTriggered = false  
     showPrizeOverlay(payload.prizeName)
     currentWinnerMykad = payload.winnerMykad
     releaseSchedule = buildReleaseSchedule(payload)
@@ -732,50 +940,63 @@
     phaseStartTime = performance.now()
     shakeTimer = CONFIG.shakeDurationMs
     phase = 'shaking'
+    SoundManager.shakeStart()
   }
 
-  function spawnBalloon(entry, now) {
-    const color = CONFIG.colors[cryptoRandomInt(CONFIG.colors.length)]
-    const group = createBalloonMesh(color)
-    const sprite = createNameSprite(entry.name)
-    sprite.position.set(0, 1.0, 1.1)
-    group.add(sprite)
+    function spawnBalloon(entry, now) {
+      SoundManager.release()
+      const color = CONFIG.colors[cryptoRandomInt(CONFIG.colors.length)]
+      const group = createBalloonMesh(color)
+      const sprite = createNameSprite(entry.name)
+      sprite.position.set(0, 1.0, 1.1)
+      group.add(sprite)
+    
+      const mouth = getBoxMouthPosition(new THREE.Vector3())
+      group.position.copy(mouth)
+      group.scale.setScalar(0.05)
+    
+      const finalScale = cryptoRandomRange(CONFIG.balloonScaleMin, CONFIG.balloonScaleMax)
   
-    const mouth = getBoxMouthPosition(new THREE.Vector3())
-    group.position.copy(mouth)
-    group.scale.setScalar(0.05)
+      // grand prize (catAll) = slower, more dramatic float
+      const riseMin = dramaticMode ? DRAMATIC.riseSpeedMin : CONFIG.balloonRiseSpeedMin
+      const riseMax = dramaticMode ? DRAMATIC.riseSpeedMax : CONFIG.balloonRiseSpeedMax
   
-    const finalScale = cryptoRandomRange(CONFIG.balloonScaleMin, CONFIG.balloonScaleMax)
-    const balloon = {
-      group, sprite, name: entry.name, isWinner: entry.isWinner,
-      spawnTime: now,
-      finalScale,
-      driftX: cryptoRandomRange(-2.4, 2.4),
-      swaySeed: cryptoRandomFloat() * Math.PI * 2,
-      riseSpeed: cryptoRandomRange(CONFIG.balloonRiseSpeedMin, CONFIG.balloonRiseSpeedMax),
-      popAt: entry.isWinner ? now + cryptoRandomRange(CONFIG.winnerPopDelayMinMs, CONFIG.winnerPopDelayMaxMs) : null,
-      popped: false,
-      baseXAtMouth: mouth.x,
-      layerZ: cryptoRandomRange(-1.6, 1.6),
-      // anjakan awal rawak supaya belon tidak bertindan sesama sendiri sebaik keluar dari mulut kotak
-      spawnOffsetX: cryptoRandomRange(-0.9, 0.9),
-      // anjakan kolisi terkumpul, ditambah oleh resolveBalloonCollisions semasa fasa muncul
-      collisionOffsetX: 0,
-      collisionOffsetZ: 0,
+      // winner's pop is normally scheduled randomly at spawn time; in dramatic mode
+      // it's withheld and only scheduled once ALL balloons have left the box (see updatePhases)
+      const popAt = (entry.isWinner && !dramaticMode)
+        ? now + cryptoRandomRange(CONFIG.winnerPopDelayMinMs, CONFIG.winnerPopDelayMaxMs)
+        : null
+  
+      const balloon = {
+        group, sprite, name: entry.name, isWinner: entry.isWinner,
+        spawnTime: now,
+        finalScale,
+        driftX: cryptoRandomRange(-2.4, 2.4),
+        swaySeed: cryptoRandomFloat() * Math.PI * 2,
+        riseSpeed: cryptoRandomRange(riseMin, riseMax),
+        popAt,
+        popped: false,
+        baseXAtMouth: mouth.x,
+        layerZ: cryptoRandomRange(-1.6, 1.6),
+        spawnOffsetX: cryptoRandomRange(-0.9, 0.9),
+        collisionOffsetX: 0,
+        collisionOffsetZ: 0,
+      }
+      if (balloon.popAt !== null) {
+        balloon.preBurstStartAt = balloon.popAt - (dramaticMode ? DRAMATIC.preBurstGrowMs : CONFIG.winnerPreBurstGrowMs)
+      }
+      scene.add(group)
+      activeBalloons.push(balloon)
     }
-    if (balloon.popAt !== null) {
-      balloon.preBurstStartAt = balloon.popAt - CONFIG.winnerPreBurstGrowMs
-    }
-    scene.add(group)
-    activeBalloons.push(balloon)
-  }
 
-  function popWinnerBalloon(balloon) {
+    function popWinnerBalloon(balloon) {
     balloon.popped = true
     const pos = balloon.group.position.clone()
     scene.remove(balloon.group)
     activeBalloons = activeBalloons.filter((b) => b !== balloon)
     spawnConfetti(pos, 260)
+    SoundManager.pop()
+    SoundManager.reveal()          // ← delay is now handled internally, precisely
     spotTarget.position.copy(pos)
     spotLight.position.set(pos.x, pos.y + 8, pos.z + 6)
     spotPulseUntil = performance.now() + 900
@@ -812,15 +1033,22 @@
         b.group.position.y = mouth.y + t * 1.1
         b.group.position.z = mouth.z + b.layerZ + b.collisionOffsetZ
       } else {
-        b.group.position.y += b.riseSpeed * dt
+        if (b.isWinner) {
+          const ceiling = dramaticMode ? DRAMATIC.hoverCeiling : CONFIG.normalHoverCeiling
+          b.group.position.y = Math.min(b.group.position.y + b.riseSpeed * dt, ceiling)
+        } else {
+          b.group.position.y += b.riseSpeed * dt
+        }
         const riseT = clamp01((b.group.position.y - 1.5) / 12)
         b.group.position.x += (b.driftX * dt * 0.18)
         b.group.position.x += Math.sin(now / 650 + b.swaySeed) * 0.012
   
         if (b.isWinner && !b.popped && b.preBurstStartAt !== undefined && now >= b.preBurstStartAt) {
-          const growT = clamp01((now - b.preBurstStartAt) / CONFIG.winnerPreBurstGrowMs)
+          const growMs = dramaticMode ? DRAMATIC.preBurstGrowMs : CONFIG.winnerPreBurstGrowMs
+          const scaleMult = dramaticMode ? DRAMATIC.preBurstScaleMult : CONFIG.winnerPreBurstScaleMult
+          const growT = clamp01((now - b.preBurstStartAt) / growMs)
           const eased = easeInOutSine(growT)
-          const scale = b.finalScale * (1 + (CONFIG.winnerPreBurstScaleMult - 1) * eased)
+          const scale = b.finalScale * (1 + (scaleMult - 1) * eased)
           b.group.scale.setScalar(scale)
           b.group.position.x += (0 - b.group.position.x) * Math.min(1, dt * 2.2) * eased
           b.group.position.z += (6 - b.group.position.z) * Math.min(1, dt * 2.2) * eased
@@ -859,6 +1087,8 @@
         releaseStartTime = now
         lidOpenTarget = 1
         phase = 'releasing'
+        SoundManager.shakeStop()
+        SoundManager.open()
       }
       return
     }
@@ -872,7 +1102,18 @@
         spawnBalloon(releaseSchedule[nextScheduleIndex], now)
         nextScheduleIndex++
       }
-      // semua sudah dijadualkan keluar & tiada lagi di udara -> tutup lid semula
+
+      // dramatic mode: begin the winner's countdown only once ALL balloons are released
+      if (dramaticMode && !allReleasedTriggered && nextScheduleIndex >= releaseSchedule.length) {
+        allReleasedTriggered = true
+        const winner = activeBalloons.find((b) => b.isWinner && !b.popped)
+        if (winner) {
+          const delay = cryptoRandomRange(DRAMATIC.suspenseDelayMinMs, DRAMATIC.suspenseDelayMaxMs)
+          winner.popAt = now + delay
+          winner.preBurstStartAt = winner.popAt - DRAMATIC.preBurstGrowMs
+        }
+      }
+
       if (nextScheduleIndex >= releaseSchedule.length && activeBalloons.length === 0) {
         lidOpenTarget = 0
         phase = winnerRevealed ? 'winner' : 'releasing'
@@ -975,6 +1216,19 @@
     renderer.render(scene, camera)
   }
   animate()
+
+  function findOnsetOffset(buffer, threshold = 0.04) {
+    const data = buffer.getChannelData(0)
+    for (let i = 0; i < data.length; i++) {
+      if (Math.abs(data[i]) > threshold) {
+        return Math.max(0, i / buffer.sampleRate - 0.005) // sedikit ruang (5ms) sebelum transient
+      }
+    }
+    return 0
+  }
+
+  let popOnset = 0
+  let revealOnset = 0
 </script>
 
 </body>
