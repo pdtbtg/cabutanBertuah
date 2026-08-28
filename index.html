@@ -276,6 +276,24 @@
     padding: 0.4rem 0.9rem;
     margin: 1.8dvh 0 2.2dvh;
   }
+  .winner-announcement {
+    background: linear-gradient(160deg, #fff8e1, #ffedb3);
+    border: 2px solid var(--jg-gold-dark);
+    border-radius: 14px;
+    padding: 1.6dvh 5vw;
+    margin: 1.8dvh 0 2.2dvh;
+    animation: pop-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .winner-announcement .winner-title {
+    font-weight: 800;
+    color: var(--jg-red);
+    font-size: 1rem;
+    margin-bottom: 0.6dvh;
+  }
+  .winner-announcement p {
+    margin-bottom: 0.3dvh;
+    font-size: 0.9rem;
+  }
   .btn-outline-secondary.btn-new {
     border-radius: 12px;
     font-weight: 600;
@@ -415,6 +433,11 @@
             <h3>Berjaya, terima kasih <span class="success-name" id="successName"></span>!</h3>
             <p>Anda berjaya mendaftar untuk cabutan bertuah.</p>
             <p id="successCategoryMsg"></p>
+            <div id="winnerAnnouncement" class="winner-announcement" style="display:none;">
+              <p class="winner-title">TAHNIAH! ANDA TERPILIH SEBAGAI PENERIMA HADIAH MISTERI!</p>
+              <p>Sila tuntut hadiah anda bernombor <strong id="winnerPrizeNumber"></strong> di Meja Urus Setia.</p>
+              <p>Selamat Menyambut Hari Kebangsaan Ke-69!</p>
+            </div>
             <div class="success-badge">
               <i class="bi bi-megaphone-fill"></i>
               Nantikan pengumuman pada bila-bila masa
@@ -578,35 +601,19 @@
     setLoading(true, 'Menyemak...')
 
     // Check if this MyKad has already registered
-    const { data: alreadyRegistered, error: checkError } = await supabase
-      .rpc('check_mykad_registered', { check_mykad: mykad_number })
-
-    if (checkError) {
-      setLoading(false)
-      showError('Ralat Sistem', 'Gagal menyemak status pendaftaran: ' + checkError.message)
-      return
-    }
-
-    if (alreadyRegistered) {
-      setLoading(false)
-      showError('Sudah Didaftarkan', 'No. MyKad ini sudah didaftarkan sebelum ini.')
-      return
-    }
-
     setLoading(true, 'Menghantar...')
 
-      const { error } = await supabase
-      .from('participants')
-      .insert([{
-        full_name,
-        mykad_number,
-        urus_setia: urusSetiaInput.value === 'true'
-      }])
+    const { data: regResult, error } = await supabase
+      .rpc('register_participant', {
+        p_full_name: full_name,
+        p_mykad_number: mykad_number,
+        p_urus_setia: urusSetiaInput.value === 'true'
+      })
 
     setLoading(false)
 
     if (error) {
-      const msg = error.code === '23505'
+      const msg = (error.message && error.message.includes('MYKAD_DUPLICATE'))
         ? 'No. MyKad ini sudah didaftarkan sebelum ini.'
         : 'Ralat: ' + error.message
       showError('Pendaftaran Tidak Berjaya', msg)
@@ -614,21 +621,37 @@
       return
     }
 
+    const result = Array.isArray(regResult) ? regResult[0] : regResult
+    const winnerAnnouncement = document.getElementById('winnerAnnouncement')
+    const winnerPrizeNumber = document.getElementById('winnerPrizeNumber')
+    const successBadgeEl = document.querySelector('.success-badge')
+
     // Show inline success view
     successName.textContent = full_name
     successCategoryMsg.textContent = isUrusSetia
       ? '5 pemenang kategori Urus Setia / Peserta Kontinjen akan diumumkan di pentas utama.'
       : '5 pemenang kategori awam akan diumumkan di pentas utama.'
+
+    if (result && result.is_winner) {
+      winnerPrizeNumber.textContent = result.prize_number
+      winnerAnnouncement.style.display = 'block'
+      successBadgeEl.style.display = 'none'
+    } else {
+      winnerAnnouncement.style.display = 'none'
+      successBadgeEl.style.display = 'inline-flex'
+    }
+
     formView.style.display = 'none'
     errorView.style.display = 'none'
     successView.style.display = 'flex'
   })
 
-  registerAnotherBtn.addEventListener('click', () => {
+    registerAnotherBtn.addEventListener('click', () => {
     form.reset()
     nameGroup.classList.remove('has-error')
     mykadGroup.classList.remove('has-error')
     termsError.style.display = 'none'
+    document.getElementById('winnerAnnouncement').style.display = 'none'
     successView.style.display = 'none'
     formView.style.display = 'block'
     fullNameInput.focus()
