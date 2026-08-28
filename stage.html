@@ -653,7 +653,7 @@ soundUnlockBtn.addEventListener('click', () => {
   
     // bow dari fail SVG - loop, ekor & band tengah semua sekali dalam satu bentuk
     const bowGroup = createBowFromSvg(ribbonMat)
-    bowGroup.position.set(0, lidH + 0.14, bd * 0.54 + 1)
+    bowGroup.position.set(0, lidH + 0.14, bd * 0.54 + 0.5)
     lidPivot.add(bowGroup)
   
     return { group, lidPivot, bodyTopY: bh, bodyMat }
