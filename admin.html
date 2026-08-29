@@ -157,13 +157,12 @@
           <th>#</th>
           <th>Nama Penuh</th>
           <th>No. MyKad</th>
-          <th>No. Telefon</th>
-          <th>Emel</th>
+          <th>Penyertaan</th>
           <th>Tarikh Daftar</th>
         </tr>
       </thead>
       <tbody id="participantsBody">
-        <tr id="loadingRow"><td colspan="7">Memuatkan...</td></tr>
+        <tr id="loadingRow"><td colspan="6">Memuatkan...</td></tr>
       </tbody>
     </table>
   </div>
@@ -218,7 +217,7 @@
     selectedIds.clear() // selection is tied to what's visible; a new render starts fresh
 
     if (list.length === 0) {
-      participantsBody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4">Tiada peserta dijumpai.</td></tr>`
+      participantsBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">Tiada peserta dijumpai.</td></tr>`
       updateSelectionUI()
       return
     }
@@ -228,8 +227,7 @@
         <td>${i + 1}</td>
         <td>${p.full_name}</td>
         <td>${p.mykad_number}</td>
-        <td>${p.phone_number || '-'}</td>
-        <td>${p.email || '-'}</td>
+        <td>${p.urus_setia ? 'Urus Setia' : 'Awam'}</td>
         <td>${formatDate(p.created_at)}</td>
       </tr>
     `).join('')
@@ -271,7 +269,7 @@
         .range(from, from + pageSize - 1)
 
       if (error) {
-        participantsBody.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-4">Ralat: ${error.message}</td></tr>`
+        participantsBody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-4">Ralat: ${error.message}</td></tr>`
         return
       }
 
