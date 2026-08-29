@@ -18,7 +18,6 @@
     --jg-red-dark: #a30001;
     --jg-gold: #ffcc00;
     --jg-gold-light: #ffe066;
-    --ring-mask: #ffffff;
   }
   html, body {
     min-height: 100dvh;
@@ -160,11 +159,14 @@
     box-shadow: 0 0 0 0.2rem rgba(1,0,102,0.15);
   }
 
-  /* ---------------- Cabutan stage button: rotating Jalur Gemilang ring ---------------- */
-  .cabut-wrap { position: relative; isolation: isolate; }
+  .cabut-wrap {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    border-radius: 25px; /* #drawBtn's 20px + the 5px .d-grid margin below */
+  }
   /* the spinning ring is now the wrap's own background, not a child overlay */
   .cabut-wrap::before {
-    overflow: hidden;
     content: '';
     position: absolute;
     inset: -60%;
@@ -222,10 +224,8 @@
     50% { transform: scale(1.012); }
   }
   @media (prefers-reduced-motion: reduce) {
-    .ring-fx::before, .cabut-wrap.is-drawing, #drawBtn { animation: none !important; }
+    .cabut-wrap::before, .cabut-wrap.is-drawing, #drawBtn { animation: none !important; }
   }
-
-  body.vvip-mode .cabut-wrap { --ring-mask: transparent; }
 
   /* ---------------- VVIP mode: strip everything but the button ---------------- */
   body.vvip-mode { background: linear-gradient(135deg, var(--jg-blue) 0%, var(--jg-blue-light) 45%, var(--jg-red) 100%); }
