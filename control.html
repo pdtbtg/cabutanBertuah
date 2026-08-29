@@ -161,58 +161,29 @@
   }
 
   /* ---------------- Cabutan stage button: rotating Jalur Gemilang ring ---------------- */
-  /* A pure-CSS spinning border replaces the old JS-measured SVG chase light:
-     ::before paints an oversized conic gradient that rotates behind the
-     button, and ::after masks it down to a thin ring by covering the
-     centre with --ring-mask (the colour immediately behind the wrap —
-     white on the card, transparent over the VVIP stage gradient). This
-     scales to any button size automatically, so no resize listener or
-     geometry math is needed. */
-  .cabut-wrap {
-    position: relative;
-    border-radius: 26px;
-    padding: 5px;
-    isolation: isolate;
-  }
-  /* .ring-fx is a separate, overflow-clipped layer just for the spinning
-     gradient — clipping lived nowhere before, so the oversized ::before
-     square span was visible spinning past the rounded corners. Keeping
-     the box-shadow glow on .cabut-wrap itself (not clipped) avoids the
-     opposite problem of the glow getting cut off by that same clip. */
-  .ring-fx {
-    position: absolute;
-    inset: 0;
-    border-radius: 26px;
+  .cabut-wrap { position: relative; isolation: isolate; }
+  /* the spinning ring is now the wrap's own background, not a child overlay */
+  .cabut-wrap::before {
     overflow: hidden;
-    z-index: -1;
-  }
-  .ring-fx::before {
     content: '';
     position: absolute;
     inset: -60%;
+    z-index: 0;
     background: conic-gradient(from 0deg,
       var(--jg-red) 0deg, var(--jg-gold) 120deg, var(--jg-blue-light) 240deg, var(--jg-red) 360deg);
     animation: ringSpin 7s linear infinite;
   }
-  .ring-fx::after {
-    content: '';
-    position: absolute;
-    inset: 5px;
-    background: var(--ring-mask);
-    border-radius: 22px;
-    transition: background 0.2s ease;
-  }
   .cabut-wrap .d-grid {
     position: relative;
     z-index: 1;
+    margin: 5px;
   }
   @keyframes ringSpin { to { transform: rotate(360deg); } }
 
   .cabut-wrap.is-drawing {
-    padding: 7px;
-    animation: ringGlowPulse 0.9s ease-in-out infinite;
+  animation: ringGlowPulse 0.9s ease-in-out infinite;
   }
-  .cabut-wrap.is-drawing .ring-fx::before {
+  .cabut-wrap.is-drawing::before {
     animation: ringSpin 0.9s linear infinite;
   }
   @keyframes ringGlowPulse {
@@ -433,7 +404,6 @@
       <div class="fw-bold fs-3" id="vvipPrizeText"></div>
     </div>
     <div class="cabut-wrap" id="cabutWrap">
-      <div class="ring-fx"></div>
       <div class="d-grid">
         <button class="btn btn-primary btn-lg" id="drawBtn">🎉 Cabut Sekarang</button>
       </div>
