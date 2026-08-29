@@ -159,37 +159,45 @@
     box-shadow: 0 0 0 0.2rem rgba(1,0,102,0.15);
   }
 
-  .cabut-wrap {
-    position: relative;
-    isolation: isolate;
-    border-radius: 25px;
-    overflow: hidden;
-  }
-  .cabut-wrap::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    border-radius: inherit;
-    padding: 5px; /* ring thickness */
-    background: conic-gradient(from 0deg,
-      var(--jg-red) 0deg, var(--jg-gold) 120deg, var(--jg-blue-light) 240deg, var(--jg-red) 360deg);
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    animation: ringSpin 7s linear infinite;
-  }
+  @property --ring-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.cabut-wrap {
+  position: relative;
+  isolation: isolate;
+  border-radius: 25px;
+}
+.cabut-wrap::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  padding: 5px; /* ring thickness */
+  background: conic-gradient(from var(--ring-angle),
+    var(--jg-red) 0deg, var(--jg-gold) 120deg, var(--jg-blue-light) 240deg, var(--jg-red) 360deg);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: ringSpin 7s linear infinite;
+}
+@keyframes ringSpin {
+  to { --ring-angle: 360deg; }
+}
+  
   .cabut-wrap .d-grid {
     position: relative;
     z-index: 1;
     margin: 5px;
   }
-  @keyframes ringSpin { to { transform: rotate(360deg); } }
 
   .cabut-wrap.is-drawing {
   animation: ringGlowPulse 0.9s ease-in-out infinite;
   }
-  .cabut-wrap.is-drawing::before {
+    .cabut-wrap.is-drawing::before {
     animation: ringSpin 0.9s linear infinite;
   }
   @keyframes ringGlowPulse {
