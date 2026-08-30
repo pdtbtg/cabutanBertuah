@@ -135,6 +135,25 @@
     0% { background: #fff6cc; }
     100% { background: transparent; }
   }
+    .claim-check {
+    flex: 0 0 auto;
+    width: 26px;
+    height: 26px;
+    cursor: pointer;
+    accent-color: var(--jg-gold-dark);
+  }
+  .claim-label {
+    font-size: 0.68rem;
+    color: var(--ink-soft);
+    text-align: center;
+    margin-top: 2px;
+  }
+  .claim-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 0 0 auto;
+  }
   .last-updated {
     text-align: center;
     color: rgba(255,255,255,0.85);
@@ -200,7 +219,25 @@
         <div class="w-name">${winner.full_name}</div>
         <div class="w-meta">No. MyKad: ${winner.mykad_number} &middot; Giliran #${winner.reg_position}</div>
       </div>
+      <div class="claim-wrap">
+        <input type="checkbox" class="claim-check" ${winner.prize_claimed ? 'checked' : ''}>
+        <span class="claim-label">Tebus</span>
+      </div>
     `
+    const checkbox = row.querySelector('.claim-check')
+    checkbox.addEventListener('change', async (e) => {
+      e.target.disabled = true
+      const { error } = await supabase
+        .from('participants')
+        .update({ prize_claimed: e.target.checked })
+        .eq('mykad_number', winner.mykad_number)
+
+      if (error) {
+        console.error('Gagal kemaskini status tebusan:', error)
+        e.target.checked = !e.target.checked // revert on failure
+      }
+      e.target.disabled = false
+    })
     return row
   }
 
@@ -236,7 +273,7 @@
   async function fetchWinners() {
     const { data, error } = await supabase
       .from('participants')
-      .select('full_name, mykad_number, urus_setia, reg_position, mystery_prize_number')
+      .select('full_name, mykad_number, urus_setia, reg_position, mystery_prize_number, prize_claimed')
       .eq('is_mystery_winner', true)
 
     if (error) {
