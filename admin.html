@@ -361,12 +361,13 @@
 
     const wonIds = await getWonParticipantIds()
 
-    const rows = currentList.map((p, i) => ({
+      const rows = currentList.map((p, i) => ({
       '#': i + 1,
       'Nama Penuh': p.full_name,
       'No. MyKad': p.mykad_number,
       'No. Telefon': p.phone_number || '-',
       'Emel': p.email || '-',
+      'Penyertaan': p.urus_setia ? 'Urus Setia' : 'Awam',
       'Tarikh Daftar': formatDate(p.created_at),
       'Winner': wonIds.has(p.id) ? 'Yes' : 'No'
     }))
