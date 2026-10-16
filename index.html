@@ -613,9 +613,10 @@
     setLoading(false)
 
     if (error) {
-      const msg = (error.message && error.message.includes('MYKAD_DUPLICATE'))
-        ? 'No. MyKad ini sudah didaftarkan sebelum ini.'
-        : 'Ralat: ' + error.message
+      let msg = 'Ralat: ' + error.message
+      if (error.message?.includes('MYKAD_DUPLICATE')) msg = 'No. MyKad ini sudah didaftarkan sebelum ini.'
+      else if (error.message?.includes('MYKAD_INVALID')) msg = 'No. MyKad mesti 12 digit angka.'
+      else if (error.message?.includes('NAME_INVALID')) msg = 'Nama tidak sah. Gunakan 3-100 aksara tanpa simbol < > & ".'
       showError('Pendaftaran Tidak Berjaya', msg)
       console.error(error)
       return
