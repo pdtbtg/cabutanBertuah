@@ -405,7 +405,7 @@
   function updateSelectionUI() {
     deleteSelectedBtn.disabled = selectedIds.size === 0
     selectedCountSpan.textContent = selectedIds.size
-
+    if (!table) return
     const ids = getFilteredIds()
     let inFilter = 0
     for (const id of ids) if (selectedIds.has(id)) inFilter++
@@ -500,7 +500,9 @@
     loginBtn.textContent = 'Log Masuk'
 
     if (error) {
-      Swal.fire('Ralat', 'Emel atau kata laluan salah.', 'error')
+        Swal.fire('Ralat', error.status === 400
+        ? 'Emel atau kata laluan salah.'
+        : 'Log masuk gagal: ' + error.message, 'error')
       return
     }
     showDashboard()
