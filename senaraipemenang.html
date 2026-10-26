@@ -2,205 +2,254 @@
 <html lang="ms">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <link rel="icon" href="assets/pahang.ico" type="image/x-icon">
-<title>Senarai Pemenang – Cabutan Bertuah Semarak Jalur Gemilang 2026</title>
+<title>Senarai Pemenang – Karnival Aspirasi Pahang1st</title>
 
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <style>
   :root {
-    --jg-blue:       #010066;
-    --jg-blue-light: #1a2a8f;
-    --jg-red:        #cc0001;
-    --jg-red-dark:   #a30001;
-    --jg-gold:       #ffcc00;
+    --brand: #0f766e;
+    --brand-dark: #115e59;
+    --brand-soft: #e6f4f1;
+    --accent: #f59e0b;
+    --accent-soft: #fff7e6;
+    --danger: #dc2626;
+    --danger-soft: #fdeeee;
+    --ink: #1f2937;
+    --ink-soft: #6b7280;
+    --line: #e3e9e8;
+    --surface: #ffffff;
   }
 
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  html, body {
-    min-height: 100dvh;
-    background: #f0f1f5;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    color: #111;
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { min-height: 100dvh; margin: 0; }
+  body {
+    background:
+      radial-gradient(900px 500px at 10% -10%, #d9efea 0%, transparent 60%),
+      radial-gradient(800px 500px at 100% 0%, #fdf0d8 0%, transparent 55%),
+      #f5f8f7;
+    background-attachment: fixed;
+    color: var(--ink);
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-tap-highlight-color: transparent;
   }
 
-  /* ── Header ── */
+  /* ---------------- Header ---------------- */
   .page-header {
-    background: linear-gradient(135deg, var(--jg-blue) 0%, var(--jg-blue-light) 55%, var(--jg-red) 100%);
-    padding: 2.5dvh 1.5vw 2.2dvh;
     text-align: center;
-    position: relative;
-    overflow: hidden;
-  }
-  .page-header::after {
-    content: '';
-    display: block;
-    height: 5px;
-    background: linear-gradient(90deg,
-      var(--jg-red)  0%,  var(--jg-red)  33%,
-      var(--jg-gold) 33%, var(--jg-gold) 66%,
-      var(--jg-blue-light) 66%);
-    position: absolute;
-    bottom: 0; left: 0; right: 0;
-  }
-
-  .header-eyebrow {
-    font-size: clamp(0.72rem, 1vw, 1rem);
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.70);
-    font-weight: 600;
-    margin-bottom: 0.6rem;
+    background: rgba(255,255,255,0.85);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+    padding: 2.2dvh 4vw 1.8dvh;
   }
   .header-title {
-    font-size: clamp(1.2rem, 2.4vw, 2rem);
-    font-weight: 800;
-    color: #fff;
+    font-weight: 700;
     line-height: 1.3;
-    max-width: 100%;
+    font-size: clamp(1.05rem, 2.2vw, 1.7rem);
+    max-width: 1100px;
     margin: 0 auto;
-    letter-spacing: 0.01em;
   }
-  .header-subtitle {
-    margin-top: 0.55rem;
-    font-size: 0.80rem;
-    color: rgba(255,255,255,0.60);
-    letter-spacing: 0.04em;
+  .header-title .title-year { color: var(--brand); }
+  .header-sub {
+    margin-top: 0.35rem;
+    font-size: clamp(0.85rem, 1.1vw, 1.05rem);
+    font-weight: 600;
+    color: var(--ink-soft);
+  }
+  .brand-strip {
+    height: 3px;
+    background: linear-gradient(90deg, var(--brand) 0%, #5eb8ac 55%, var(--accent) 100%);
+  }
+  .refresh-bar {
+    height: 2px;
+    width: 0%;
+    background: var(--accent);
+    opacity: 0.7;
   }
 
-  /* ── Body wrapper ── */
-  .page-body {
-    max-width: 100%;
-    margin: 0;
-    padding: 2dvh 1.5vw 3dvh;
-  }
+  /* ---------------- Body ---------------- */
+  .page-body { padding: 2.6dvh 2vw 3dvh; max-width: 1600px; margin: 0 auto; }
 
-  /* ── Stats row ── */
   .stats-row {
     display: flex;
     justify-content: center;
-    gap: 1.2rem;
+    flex-wrap: wrap;
+    gap: 0.8rem;
     margin-bottom: 2.4dvh;
   }
   .stat-pill {
-    background: #fff;
-    border: 1.5px solid #e2e6f0;
+    background: var(--surface);
+    border: 1px solid var(--line);
     border-radius: 999px;
-    padding: 0.55rem 1.4rem;
-    font-size: clamp(0.85rem, 1.1vw, 1.1rem);
+    padding: 0.5rem 1.2rem;
+    font-size: clamp(0.85rem, 1.05vw, 1.05rem);
     font-weight: 700;
-    color: var(--jg-blue);
-    letter-spacing: 0.02em;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
   }
-  .stat-pill span { font-weight: 400; color: #666; margin-left: 0.3rem; }
+  .stat-pill span { font-weight: 500; color: var(--ink-soft); margin-left: 0.3rem; }
+  .stat-pill.claimed { background: var(--brand-soft); border-color: #cde8e3; color: var(--brand-dark); }
+  .stat-pill.claimed span { color: var(--brand-dark); opacity: 0.8; }
 
-  /* ── Winner list card ── */
+  /* ---------------- Winner list ---------------- */
   .winners-card {
-    background: #fff;
-    border-radius: 14px;
-    box-shadow: 0 2px 14px rgba(0,0,0,0.07);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: 0 10px 30px rgba(15, 60, 55, 0.06), 0 2px 6px rgba(15, 60, 55, 0.03);
     overflow: hidden;
-    /* multi-column layout for big screen */
     columns: 2;
     column-gap: 0;
   }
-  @media (max-width: 900px) {
-    .winners-card { columns: 1; }
-  }
+  @media (max-width: 900px) { .winners-card { columns: 1; } }
 
   .winner-row {
     display: grid;
-    grid-template-columns: 3.2rem 1fr auto;
+    grid-template-columns: 2.8rem 1fr auto;
+    grid-template-areas:
+      "num info mykad"
+      "num info claim";
     align-items: center;
-    gap: 1rem;
-    padding: 0.9rem 1.6rem;
-    border-bottom: 1px solid #f0f1f5;
+    column-gap: 1rem;
+    row-gap: 0.25rem;
+    padding: 0.85rem 1.4rem;
+    border-bottom: 1px solid #eef2f1;
     break-inside: avoid;
-    transition: background 0.15s ease;
-    animation: slideIn 0.35s ease both;
   }
-  .winner-row:last-child { border-bottom: none; }
-  .winner-row:hover { background: #f8f9ff; }
-
-  @keyframes slideIn {
-    from { opacity: 0; transform: translateY(8px); }
+  .winner-row.enter { animation: rowIn 0.35s ease both; }
+  @keyframes rowIn {
+    from { opacity: 0; transform: translateY(6px); }
     to   { opacity: 1; transform: translateY(0); }
   }
+  .winner-row.is-claimed { background: #f4faf8; }
 
   .winner-num {
-    width: 2.8rem;
-    height: 2.8rem;
-    background: linear-gradient(135deg, var(--jg-blue), var(--jg-blue-light));
-    color: #fff;
+    grid-area: num;
+    width: 2.6rem;
+    height: 2.6rem;
     border-radius: 50%;
+    background: linear-gradient(160deg, #14b8a6, var(--brand));
+    color: #fff;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 0.9rem;
-    font-weight: 800;
-    flex-shrink: 0;
+    font-weight: 700;
+    box-shadow: 0 4px 10px rgba(15, 118, 110, 0.25);
   }
-
-
+  .winner-info { grid-area: info; min-width: 0; }
   .winner-name {
     font-weight: 700;
-    font-size: clamp(1rem, 1.4vw, 1.35rem);
-    color: #111;
+    font-size: clamp(1rem, 1.35vw, 1.3rem);
     line-height: 1.25;
     word-break: break-word;
   }
+  .winner-prize {
+    margin-top: 0.15rem;
+    font-size: clamp(0.78rem, 0.95vw, 0.95rem);
+    font-weight: 600;
+    color: #92600a;
+  }
   .winner-mykad {
+    grid-area: mykad;
+    justify-self: end;
     font-size: clamp(0.82rem, 1vw, 1.05rem);
-    color: #94a3b8;
-    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    color: var(--ink-soft);
+    font-variant-numeric: tabular-nums;
     letter-spacing: 0.06em;
     white-space: nowrap;
-    flex-shrink: 0;
   }
+  .claim-cell { grid-area: claim; justify-self: end; }
 
-  /* ── Empty / Loading states ── */
-  .state-box {
-    padding: 4dvh 2vw;
-    text-align: center;
-    color: #94a3b8;
+  /* Public status badge */
+  .claim-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border-radius: 999px;
+    padding: 0.2rem 0.7rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
   }
-  .state-icon { font-size: 2.8rem; margin-bottom: 0.7rem; }
-  .state-label { font-size: 0.9rem; font-weight: 500; }
+  .claim-badge.yes { background: var(--brand-soft); border: 1px solid #cde8e3; color: var(--brand-dark); }
+  .claim-badge.no  { background: var(--accent-soft); border: 1px solid #fde1a6; color: #92600a; }
 
-  /* ── Footer ── */
+  /* Staff checkbox */
+  .claim-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--ink);
+    cursor: pointer;
+    user-select: none;
+    padding: 0.25rem 0.2rem;
+  }
+  .claim-toggle input {
+    width: 1.25rem;
+    height: 1.25rem;
+    accent-color: var(--brand);
+    cursor: pointer;
+  }
+  .claim-toggle input:disabled { cursor: progress; opacity: 0.6; }
+
+  /* ---------------- States ---------------- */
+  .state-box { padding: 5dvh 2vw; text-align: center; color: var(--ink-soft); }
+  .state-icon { font-size: 2.6rem; margin-bottom: 0.7rem; }
+  .state-label { font-size: 0.92rem; font-weight: 500; }
+
   .page-footer {
     text-align: center;
     font-size: clamp(0.72rem, 0.85vw, 0.9rem);
-    color: #94a3b8;
-    padding: 1.5dvh 1.5vw 2dvh;
-    letter-spacing: 0.04em;
+    color: var(--ink-soft);
+    padding: 1.2dvh 4vw 2.4dvh;
+  }
+  .page-footer a { color: var(--brand); text-decoration: none; font-weight: 600; }
+  .page-footer a:hover { text-decoration: underline; }
+
+  .toast-msg {
+    position: fixed;
+    left: 50%;
+    bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    transform: translateX(-50%);
+    background: #1f2937;
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding: 0.6rem 1.1rem;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+    display: none;
+    z-index: 200;
+    max-width: 90vw;
   }
 
-  /* ── Auto-refresh indicator ── */
-  .refresh-bar {
-    height: 3px;
-    background: var(--jg-gold);
-    width: 0%;
-    transition: width linear;
-    border-radius: 0 3px 3px 0;
+  @media (prefers-reduced-motion: reduce) {
+    .winner-row.enter { animation: none; }
   }
 </style>
 </head>
 <body>
 
 <div class="page-header">
-  <div class="header-title">Senarai Pemenang Cabutan Bertuah<br>Program Semarak Jalur Gemilang Daerah Bentong 2026</div>
-  <div class="header-subtitle" id="lastUpdated">Memuat data…</div>
+  <div class="header-title">Karnival Aspirasi Pahang1st Peringkat Daerah Bentong <span class="title-year">2026</span></div>
+  <div class="header-sub" id="headerSub">Senarai Pemenang Cabutan</div>
 </div>
-
+<div class="brand-strip"></div>
 <div class="refresh-bar" id="refreshBar"></div>
 
 <div class="page-body">
-
   <div class="stats-row">
     <div class="stat-pill" id="totalPill">— <span>pemenang</span></div>
+    <div class="stat-pill claimed" id="claimedPill">— <span>telah dituntut</span></div>
+    <div class="stat-pill" id="pendingPill">— <span>belum dituntut</span></div>
   </div>
 
   <div class="winners-card" id="winnersCard">
@@ -209,38 +258,58 @@
       <div class="state-label">Sedang memuatkan…</div>
     </div>
   </div>
-
 </div>
 
 <div class="page-footer">
-  Data disegarkan setiap 15 saat &nbsp;·&nbsp; Program Semarak Jalur Gemilang 2026
+  <span id="lastUpdated">Memuat data…</span> &nbsp;·&nbsp; Data disegarkan setiap 15 saat
+  &nbsp;·&nbsp; <a href="control.html">Panel staf</a>
 </div>
+
+<div class="toast-msg" id="toastMsg"></div>
 
 <script type="module">
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
 
-  const SUPABASE_URL     = 'https://brcxlubmlymtpiwbjwez.supabase.co'
+  const SUPABASE_URL      = 'https://brcxlubmlymtpiwbjwez.supabase.co'
   const SUPABASE_ANON_KEY = 'sb_publishable_VX22OseUPH_DdPN_jasgWA_1Vtwg4u9'
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
-  const winnersCard  = document.getElementById('winnersCard')
-  const totalPill    = document.getElementById('totalPill')
-  const lastUpdated  = document.getElementById('lastUpdated')
-  const refreshBar   = document.getElementById('refreshBar')
+  const winnersCard = document.getElementById('winnersCard')
+  const totalPill   = document.getElementById('totalPill')
+  const claimedPill = document.getElementById('claimedPill')
+  const pendingPill = document.getElementById('pendingPill')
+  const lastUpdated = document.getElementById('lastUpdated')
+  const refreshBar  = document.getElementById('refreshBar')
+  const toastMsg    = document.getElementById('toastMsg')
 
-  const REFRESH_MS = 15000   // auto-refresh every 15 seconds
+  const REFRESH_MS = 15000
 
-  // ---------------- Mask IC: keep last 4, replace rest with * ----------------
-  function maskMykad(ic) {
-    if (!ic) return '—'
-    const clean = ic.replace(/\D/g, '')   // digits only
-    if (clean.length < 4) return '—'
-    const last4 = clean.slice(-4)
-    const stars = '*'.repeat(clean.length - 4)
-    return stars + last4
+  let isStaff = false        // true bila pegawai sudah log masuk (sesi dikongsi dengan control.html)
+  let busy = false           // sedang menyimpan status tuntutan
+  let winners = []
+  let hasLoaded = false
+  let animateNext = true     // animasi hanya pada paparan pertama
+  let lastSig = ''
+
+  function esc(str) {
+    return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
   }
 
-  // ---------------- Format timestamp (nice Malay style) ----------------
+  function showToast(msg) {
+    toastMsg.textContent = msg
+    toastMsg.style.display = 'block'
+    clearTimeout(showToast._t)
+    showToast._t = setTimeout(() => { toastMsg.style.display = 'none' }, 3500)
+  }
+
+  // ---------------- Mask IC: ********1234 ----------------
+  function maskMykad(ic) {
+    if (!ic) return '—'
+    const clean = ic.replace(/\D/g, '')
+    if (clean.length < 4) return '—'
+    return '*'.repeat(clean.length - 4) + clean.slice(-4)
+  }
+
   const MS_MONTHS = ['Jan','Feb','Mac','Apr','Mei','Jun','Jul','Ogos','Sep','Okt','Nov','Dis']
   function formatDateMY(value) {
     const d = new Date(value)
@@ -251,79 +320,135 @@
     return `${d.getDate()} ${MS_MONTHS[d.getMonth()]} ${d.getFullYear()}, ${h}:${m} ${ampm}`
   }
 
-  // ---------------- Main loader ----------------
-  async function loadWinners() {
-    const { data, error } = await supabase
-      .from('winners')
-      .select('id, draw_at, participants(full_name, mykad_number)')
-      .order('draw_at', { ascending: true })
-      .limit(200)
+  // ---------------- Pegawai (staff): guna sesi log masuk yang sama dengan control.html ----------------
+  supabase.auth.getSession().then(({ data: { session } }) => { isStaff = !!session; lastSig = ''; render() })
+  supabase.auth.onAuthStateChange((_event, session) => { isStaff = !!session; lastSig = ''; render() })
 
-    if (error) {
-      winnersCard.innerHTML = `
-        <div class="state-box">
-          <div class="state-icon">⚠️</div>
-          <div class="state-label">Ralat memuatkan data.<br><small>${error.message}</small></div>
-        </div>`
-      return
-    }
+  // ---------------- Paparan ----------------
+  function render() {
+    if (!hasLoaded) return
 
-    if (!data || data.length === 0) {
+    const sig = JSON.stringify(winners) + '|' + isStaff
+    if (sig === lastSig) return
+    lastSig = sig
+
+    const total = winners.length
+    const claimedCount = winners.filter(w => w.claimed).length
+    totalPill.innerHTML   = `${total} <span>pemenang</span>`
+    claimedPill.innerHTML = `${claimedCount} <span>telah dituntut</span>`
+    pendingPill.innerHTML = `${total - claimedCount} <span>belum dituntut</span>`
+
+    if (total === 0) {
       winnersCard.innerHTML = `
         <div class="state-box">
           <div class="state-icon">🎉</div>
           <div class="state-label">Tiada pemenang direkodkan lagi.</div>
         </div>`
-      totalPill.innerHTML = `0 <span>pemenang</span>`
-      lastUpdated.textContent = 'Tiada pemenang setakat ini'
       return
     }
 
-    totalPill.innerHTML = `${data.length} <span>pemenang</span>`
-    lastUpdated.textContent = `Dikemaskini: ${formatDateMY(new Date())}`
-
-    winnersCard.innerHTML = data.map((w, i) => {
-      const name   = w.participants?.full_name  || '—'
-      const mykad  = maskMykad(w.participants?.mykad_number || '')
+    const enter = animateNext ? ' enter' : ''
+    winnersCard.innerHTML = winners.map((w, i) => {
+      const name  = w.participants?.full_name || '—'
+      const mykad = maskMykad(w.participants?.mykad_number || '')
+      const prize = w.prize_name ? `<div class="winner-prize">${esc(w.prize_name)}</div>` : ''
+      const claimCell = isStaff
+        ? `<label class="claim-toggle">
+             <input type="checkbox" data-id="${esc(w.id)}" ${w.claimed ? 'checked' : ''}>
+             Dituntut
+           </label>`
+        : (w.claimed
+            ? `<span class="claim-badge yes">✓ Telah dituntut</span>`
+            : `<span class="claim-badge no">Belum dituntut</span>`)
       return `
-        <div class="winner-row" style="animation-delay:${Math.min(i * 30, 400)}ms">
+        <div class="winner-row${w.claimed ? ' is-claimed' : ''}${enter}" style="${animateNext ? `animation-delay:${Math.min(i * 30, 400)}ms` : ''}">
           <div class="winner-num">${i + 1}</div>
-          <div class="winner-name">${escHtml(name)}</div>
-          <div class="winner-mykad">${escHtml(mykad)}</div>
+          <div class="winner-info">
+            <div class="winner-name">${esc(name)}</div>
+            ${prize}
+          </div>
+          <div class="winner-mykad">${esc(mykad)}</div>
+          <div class="claim-cell">${claimCell}</div>
         </div>`
     }).join('')
+    animateNext = false
   }
 
-  function escHtml(str) {
-    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+  // ---------------- Muat data ----------------
+  async function loadWinners() {
+    const { data, error } = await supabase
+      .from('winners')
+      .select('id, draw_at, prize_name, claimed, claimed_at, participants(full_name, mykad_number)')
+      .order('draw_at', { ascending: true })
+      .limit(200)
+
+    if (error) {
+      if (!hasLoaded) {
+        winnersCard.innerHTML = `
+          <div class="state-box">
+            <div class="state-icon">⚠️</div>
+            <div class="state-label">Ralat memuatkan data.<br><small>${esc(error.message)}</small></div>
+          </div>`
+      }
+      return
+    }
+
+    winners = data || []
+    hasLoaded = true
+    lastUpdated.textContent = `Dikemaskini: ${formatDateMY(new Date())}`
+    render()
   }
 
-  // ---------------- Auto-refresh with progress bar ----------------
+  // ---------------- Tanda / nyahtanda tuntutan (pegawai sahaja) ----------------
+  winnersCard.addEventListener('change', async (e) => {
+    const cb = e.target.closest('input[data-id]')
+    if (!cb) return
+    const id = cb.dataset.id
+    const want = cb.checked
+
+    cb.disabled = true
+    busy = true
+    const { error } = await supabase.rpc('set_prize_claimed', { p_winner_id: id, p_claimed: want })
+    busy = false
+
+    if (error) {
+      cb.checked = !want
+      cb.disabled = false
+      console.error(error)
+      showToast(error.message?.includes('NOT_AUTHENTICATED')
+        ? 'Sesi tamat. Sila log masuk semula di panel kawalan.'
+        : 'Gagal menyimpan: ' + error.message)
+      return
+    }
+
+    const row = winners.find(w => String(w.id) === id)
+    if (row) { row.claimed = want; row.claimed_at = want ? new Date().toISOString() : null }
+    lastSig = ''
+    render()
+  })
+
+  // ---------------- Auto-refresh ----------------
   function startRefreshCycle() {
     refreshBar.style.transition = 'none'
     refreshBar.style.width = '0%'
-    // trigger reflow so transition resets cleanly
     void refreshBar.offsetWidth
     refreshBar.style.transition = `width ${REFRESH_MS}ms linear`
     refreshBar.style.width = '100%'
   }
 
   async function tick() {
-    await loadWinners()
+    if (!busy) await loadWinners()
     startRefreshCycle()
   }
 
   tick()
   setInterval(tick, REFRESH_MS)
 
-  // Also listen for real-time broadcasts from the control panel so the list
-  // updates instantly whenever the operator presses "Cabut Sekarang".
+  // Kemas kini segera bila pengendali membuat cabutan baharu.
   supabase
     .channel('cabutan-stage')
     .on('broadcast', { event: 'spin' }, () => {
-      // Wait for the draw to finish (≈ 3 s) before reloading so the DB row
-      // is already written by the time we query.
-      setTimeout(loadWinners, 3200)
+      setTimeout(() => { if (!busy) loadWinners() }, 3200)
     })
     .subscribe()
 </script>
