@@ -365,6 +365,34 @@
     border-color: #d7dae2;
     color: var(--ink-soft);
   }
+
+    .info-box {
+    background: #eef1fb;
+    border: 1px solid #c9d0f0;
+    border-radius: 12px;
+    padding: 0.85rem 0.95rem;
+    font-size: 0.82rem;
+    line-height: 1.55;
+    color: #3a3f4d;
+    text-align: left;
+    margin-bottom: 1.8dvh;
+  }
+  .info-box strong { color: var(--jg-blue); }
+  .reg-count-box {
+    background: #fff8e1;
+    border: 1px solid var(--jg-gold);
+    border-radius: 12px;
+    padding: 0.8rem 1rem;
+    margin: 1.2dvh 0;
+    font-weight: 700;
+    color: var(--jg-blue-dark);
+    font-size: 0.95rem;
+  }
+  .reg-note {
+    text-align: left;
+    font-size: 0.82rem !important;
+    color: #4b5060;
+  }
 </style>
 </head>
 <body>
@@ -406,7 +434,10 @@
                 </div>
                 <div class="field-error">No. MyKad mesti 12 digit angka.</div>
               </div>
-
+              <div class="info-box">
+                <strong>Maklumat:</strong> Anda boleh mendaftar lebih daripada sekali, tetapi
+                <strong>hanya satu nama bagi setiap No. MyKad</strong> akan dimasukkan dalam setiap sesi cabutan.
+              </div>
               <div class="terms-check">
                 <input type="checkbox" id="agreeTerms" required>
                 <label for="agreeTerms">Saya bersetuju dengan terma dan syarat yang telah ditetapkan oleh pihak penganjur.</label>
@@ -433,6 +464,8 @@
             <h3>Berjaya, terima kasih <span class="success-name" id="successName"></span>!</h3>
             <p>Anda berjaya mendaftar untuk cabutan bertuah.</p>
             <p id="successCategoryMsg"></p>
+            <div class="reg-count-box" id="regCountBox"></div>
+            <p class="reg-note" id="regNote"></p>
             <div id="winnerAnnouncement" class="winner-announcement" style="display:none;">
               <p class="winner-title">TAHNIAH! ANDA TERPILIH SEBAGAI PENERIMA HADIAH MISTERI!</p>
               <p>Sila tuntut hadiah anda bernombor <strong id="winnerPrizeNumber"></strong> di Meja Urus Setia.</p>
@@ -496,6 +529,8 @@
   const successView = document.getElementById('successView')
   const successName = document.getElementById('successName')
   const successCategoryMsg = document.getElementById('successCategoryMsg')
+  const regCountBox = document.getElementById('regCountBox')
+  const regNote = document.getElementById('regNote')
   const registerAnotherBtn = document.getElementById('registerAnotherBtn')
   const urusSetiaInput = document.getElementById('urus_setia')
 
@@ -623,6 +658,22 @@
     }
 
     const result = Array.isArray(regResult) ? regResult[0] : regResult
+        // How many times has this MyKad registered (including this one)?
+    let regCount = 1
+    try {
+      const { data: cnt, error: cntErr } = await supabase
+        .rpc('get_registration_count', { p_mykad_number: mykad_number })
+      if (!cntErr && cnt) regCount = cnt
+    } catch (e) { console.error(e) }
+
+    regCountBox.textContent = regCount === 1
+      ? 'Ini pendaftaran pertama anda.'
+      : `Anda telah mendaftar sebanyak ${regCount} kali.`
+    regNote.textContent = (regCount > 1
+      ? 'Pendaftaran berulang tidak menambah peluang anda. '
+      : '') +
+      'Hanya satu (1) nama bagi setiap No. MyKad akan dimasukkan dalam setiap sesi cabutan, ' +
+      'dan pemenang yang telah dipilih tidak akan dipilih semula.'
     const winnerAnnouncement = document.getElementById('winnerAnnouncement')
     const winnerPrizeNumber = document.getElementById('winnerPrizeNumber')
     const successBadgeEl = document.querySelector('.success-badge')
