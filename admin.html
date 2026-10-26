@@ -2,133 +2,241 @@
 <html lang="ms">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="icon" href="assets/pahang.ico" type="image/x-icon">
-<title>Cabutan Bertuah - Admin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<link rel="icon" href="assets/pahang.ico" type="image/x-icon">
+<title>Senarai Peserta – Admin</title>
 
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<!-- DataTables with Bootstrap 5 styling -->
+<link href="https://cdn.datatables.net/2.1.8/css/dataTables.bootstrap5.min.css" rel="stylesheet">
 
 <style>
-  html, body {
-    min-height: 100dvh;
-    margin: 0;
-    background: #f4f5f7;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  :root {
+    --brand: #0f766e;
+    --brand-dark: #115e59;
+    --brand-soft: #e6f4f1;
+    --accent: #f59e0b;
+    --accent-soft: #fff7e6;
+    --danger: #dc2626;
+    --danger-soft: #fdeeee;
+    --ink: #1f2937;
+    --ink-soft: #6b7280;
+    --line: #e3e9e8;
+    --surface: #ffffff;
   }
 
-  /* Login screen */
+  html, body { min-height: 100dvh; margin: 0; }
+  body {
+    background:
+      radial-gradient(900px 500px at 10% -10%, #d9efea 0%, transparent 60%),
+      radial-gradient(800px 500px at 100% 0%, #fdf0d8 0%, transparent 55%),
+      #f5f8f7;
+    background-attachment: fixed;
+    color: var(--ink);
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ---------------- Shared form / button styles ---------------- */
+  .form-control, .form-select {
+    border-radius: 12px;
+    border: 1.5px solid var(--line);
+    background-color: #fafcfb;
+  }
+  .form-control:focus, .form-select:focus {
+    background: #fff;
+    border-color: var(--brand);
+    box-shadow: 0 0 0 0.22rem rgba(15, 118, 110, 0.14);
+  }
+  .form-check-input:checked { background-color: var(--brand); border-color: var(--brand); }
+  .form-check-input:focus { border-color: var(--brand); box-shadow: 0 0 0 0.2rem rgba(15, 118, 110, 0.15); }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);
+    border: none;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    border-radius: 12px;
+    box-shadow: 0 6px 16px rgba(15, 118, 110, 0.25);
+    transition: transform .08s ease, box-shadow .2s ease, filter .2s;
+  }
+  .btn-primary:hover { filter: brightness(1.06); box-shadow: 0 8px 20px rgba(15, 118, 110, 0.32); }
+  .btn-primary:active { transform: scale(0.985); }
+  .btn-primary:disabled { background: #8fbdb7; box-shadow: none; }
+
+  .btn-soft {
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink-soft);
+  }
+  .btn-soft:hover { background: var(--brand-soft); border-color: #cde8e3; color: var(--brand-dark); }
+  .btn-soft.danger:hover { background: var(--danger-soft); border-color: #f7c9c9; color: #991b1b; }
+  .btn-soft:disabled { opacity: 0.5; }
+
+  /* ---------------- Login ---------------- */
   #loginScreen {
     min-height: 100dvh;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     padding: 2dvh 4vw;
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  }
+  .login-brand {
+    text-align: center;
+    font-weight: 700;
+    font-size: clamp(0.95rem, 3.6vw, 1.1rem);
+    line-height: 1.35;
+    max-width: 460px;
+    margin-bottom: 3dvh;
+  }
+  .login-brand .brand-bar {
+    width: 64px;
+    height: 3px;
+    margin: 1.2dvh auto 0;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--brand) 0%, #5eb8ac 55%, var(--accent) 100%);
   }
   #loginCard {
     width: 100%;
-    max-width: 380px;
-    background: #fff;
-    border-radius: 16px;
-    padding: 5dvh 6vw;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    max-width: 400px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    padding: 4.5dvh clamp(20px, 6vw, 34px);
+    box-shadow: 0 10px 30px rgba(15, 60, 55, 0.08), 0 2px 6px rgba(15, 60, 55, 0.04);
   }
-  @media (min-width: 992px) {
-    #loginCard {
-      max-width: 460px;
-      padding: 6dvh 4vw;
-    }
-    #loginCard h5 {
-      font-size: 1.4rem;
-    }
-  }
-  .form-floating {
-    margin-bottom: 1.6dvh;
-  }
-  .btn-primary {
-    background-color: #6366f1;
-    border-color: #6366f1;
-    font-weight: 600;
-    border-radius: 10px;
-  }
-  .btn-primary:hover {
-    background-color: #4f46e5;
-    border-color: #4f46e5;
-  }
+  .form-floating { margin-bottom: 1.6dvh; }
+  .form-floating > .form-control { background: #fafcfb; }
 
-  /* Dashboard screen */
-  #dashboardScreen {
-    display: none;
-    padding: 3dvh 3vw;
-    max-width: 1100px;
-    margin: 0 auto;
+  /* ---------------- Dashboard ---------------- */
+  #dashboardScreen { display: none; padding: 0 0 4dvh; max-width: 1200px; margin: 0 auto; }
+
+  .brand-bar-top {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(255,255,255,0.85);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+    padding: 1.6dvh 5vw 1.4dvh;
+    text-align: center;
+    font-weight: 700;
+    font-size: clamp(0.92rem, 3.4vw, 1.05rem);
+    line-height: 1.35;
   }
+  .brand-bar-top .title-year { color: var(--brand); }
+  .brand-strip {
+    height: 3px;
+    background: linear-gradient(90deg, var(--brand) 0%, #5eb8ac 55%, var(--accent) 100%);
+    margin-bottom: 3dvh;
+  }
+  .dash-inner { padding: 0 3vw; }
+
   .top-bar {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 3dvh;
     flex-wrap: wrap;
-    gap: 1.5dvh 1dvh;
+    gap: 1.5dvh 1rem;
+    margin-bottom: 2.5dvh;
   }
-  .action-bar {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    align-items: center;
-  }
-  .table-card {
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    padding: 2dvh 2vw;
-    overflow-x: auto;
-  }
-  .stat-badge {
-    background: #eef2ff;
-    color: #4f46e5;
+  .top-bar h4 { font-weight: 700; font-size: 1.2rem; margin: 0 0 0.6rem; }
+  .stat-pill {
+    display: inline-block;
+    background: var(--brand-soft);
+    border: 1px solid #cde8e3;
+    color: var(--brand-dark);
     font-weight: 600;
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    font-size: 0.9rem;
+    padding: 0.35rem 0.9rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    margin-right: 0.4rem;
+    font-variant-numeric: tabular-nums;
   }
-  table {
-    font-size: 0.9rem;
+  .stat-pill.plain { background: #fff; border-color: var(--line); color: var(--ink-soft); }
+
+  .action-bar { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+
+  .table-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: 0 10px 30px rgba(15, 60, 55, 0.06), 0 2px 6px rgba(15, 60, 55, 0.03);
+    padding: 2.2dvh clamp(12px, 2vw, 22px);
   }
-  #loadingRow td {
-    text-align: center;
-    padding: 3dvh 0;
-    color: #6b7280;
+
+  /* ---------------- DataTables (Bootstrap 5) tuning ---------------- */
+  .dt-container { font-size: 0.88rem; }
+  .dt-container .dt-search input,
+  .dt-container .dt-length select {
+    border-radius: 10px;
+    border: 1.5px solid var(--line);
+    background-color: #fafcfb;
   }
-  th.checkbox-col, td.checkbox-col {
-    width: 36px;
-    text-align: center;
+  .dt-container .dt-search input:focus,
+  .dt-container .dt-length select:focus {
+    outline: none;
+    border-color: var(--brand);
+    box-shadow: 0 0 0 0.2rem rgba(15, 118, 110, 0.14);
+    background: #fff;
   }
-    th.sortable {
-    cursor: pointer;
-    user-select: none;
+  .dt-container .pagination {
+    --bs-pagination-color: var(--brand-dark);
+    --bs-pagination-hover-color: var(--brand-dark);
+    --bs-pagination-hover-bg: var(--brand-soft);
+    --bs-pagination-active-bg: var(--brand);
+    --bs-pagination-active-border-color: var(--brand);
+    --bs-pagination-focus-color: var(--brand-dark);
+    --bs-pagination-focus-bg: var(--brand-soft);
+    --bs-pagination-focus-box-shadow: 0 0 0 0.2rem rgba(15, 118, 110, 0.15);
+    --bs-pagination-border-color: var(--line);
+    --bs-pagination-disabled-color: #9ca3af;
+    --bs-pagination-border-radius: 10px;
+    margin-bottom: 0;
+  }
+  table.dataTable thead th { color: var(--ink-soft); font-weight: 600; white-space: nowrap; border-bottom: 1px solid var(--line); }
+  table.dataTable tbody td { vertical-align: middle; }
+  table.dataTable td.checkbox-col, table.dataTable th.checkbox-col { width: 38px; text-align: center; }
+  table.dataTable td.num-col { color: var(--ink-soft); width: 56px; font-variant-numeric: tabular-nums; }
+  table.dataTable td.mykad-cell { font-variant-numeric: tabular-nums; letter-spacing: 0.03em; white-space: nowrap; }
+  table.dataTable td.date-cell { white-space: nowrap; }
+  table.dataTable tbody tr.row-selected > * { background-color: var(--brand-soft) !important; box-shadow: none !important; }
+
+  .badge-soft {
+    display: inline-block;
+    border-radius: 999px;
+    padding: 0.18rem 0.65rem;
+    font-size: 0.74rem;
+    font-weight: 600;
     white-space: nowrap;
   }
-  th.sortable:hover { color: #4f46e5; }
-  .sort-icon {
-    font-size: 0.7rem;
-    opacity: 0.45;
-    margin-left: 2px;
-  }
-  .sort-icon.active { opacity: 1; color: #4f46e5; }
+  .badge-soft.awam { background: #f3f4f6; color: var(--ink-soft); }
+  .badge-soft.urus { background: var(--brand-soft); color: var(--brand-dark); }
+  .badge-soft.multi { background: var(--accent-soft); color: #92600a; border: 1px solid #fde1a6; }
+
+  .select-hint { font-size: 0.78rem; color: var(--ink-soft); margin: 0.2rem 0 1rem; }
 </style>
 </head>
 <body>
 
-<!-- LOGIN SCREEN -->
+<!-- ============ LOGIN ============ -->
 <div id="loginScreen">
+  <div class="login-brand">
+    Karnival Aspirasi Pahang1st Peringkat Daerah Bentong 2026
+    <div class="brand-bar"></div>
+  </div>
   <div id="loginCard">
     <div class="text-center mb-4">
-      <div style="font-size:2rem;">🔐</div>
-      <h5 class="fw-bold mt-2">Admin Cabutan Bertuah</h5>
-      <div class="text-muted small">Log masuk untuk lihat senarai peserta</div>
+      <h5 class="fw-bold mt-1">Admin Senarai Peserta</h5>
+      <div class="text-muted small">Log masuk untuk melihat senarai peserta</div>
     </div>
-
     <form id="loginForm" novalidate>
       <div class="form-floating">
         <input type="email" class="form-control" id="loginEmail" placeholder="Emel" required>
@@ -145,44 +253,53 @@
   </div>
 </div>
 
-<!-- DASHBOARD SCREEN -->
+<!-- ============ DASHBOARD ============ -->
 <div id="dashboardScreen">
-  <div class="top-bar">
-    <div>
-      <h4 class="fw-bold mb-0">Senarai Peserta</h4>
-      <span class="stat-badge mt-2 d-inline-block" id="totalCount">0 peserta</span>
-    </div>
-    <div class="action-bar">
-      <input type="text" class="form-control" id="searchBox" placeholder="Cari nama / MyKad..." style="min-width:200px;">
-      <button class="btn btn-outline-success" id="exportBtn">📤 Eksport ke Excel</button>
-      <button class="btn btn-outline-danger" id="deleteSelectedBtn" disabled>🗑️ Padam Dipilih (<span id="selectedCount">0</span>)</button>
-      <button class="btn btn-outline-danger" id="clearAllBtn">🧹 Kosongkan Senarai</button>
-      <button class="btn btn-outline-secondary" id="logoutBtn">Log Keluar</button>
-    </div>
+  <div class="brand-bar-top">
+    Karnival Aspirasi Pahang1st Peringkat Daerah Bentong <span class="title-year">2026</span>
   </div>
+  <div class="brand-strip"></div>
 
-  <div class="table-card">
-    <table class="table table-hover align-middle mb-0">
-      <thead>
-        <tr>
-          <th class="checkbox-col"><input type="checkbox" class="form-check-input" id="selectAllCheckbox"></th>
-          <th>#</th>
-          <th class="sortable" data-sort="full_name">Nama Penuh <span class="sort-icon"></span></th>
-          <th class="sortable" data-sort="mykad_number">No. MyKad <span class="sort-icon"></span></th>
-          <th class="sortable" data-sort="urus_setia">Penyertaan <span class="sort-icon"></span></th>
-          <th class="sortable" data-sort="created_at">Tarikh Daftar <span class="sort-icon"></span></th>
-        </tr>
-      </thead>
-      <tbody id="participantsBody">
-        <tr id="loadingRow"><td colspan="6">Memuatkan...</td></tr>
-      </tbody>
-    </table>
+  <div class="dash-inner">
+    <div class="top-bar">
+      <div>
+        <h4>Senarai Peserta</h4>
+        <span class="stat-pill" id="totalCount">0 pendaftaran</span>
+        <span class="stat-pill plain" id="uniqueCount">0 No. MyKad unik</span>
+      </div>
+      <div class="action-bar">
+        <button class="btn btn-soft" id="exportBtn">Eksport ke Excel</button>
+        <button class="btn btn-soft danger" id="deleteSelectedBtn" disabled>Padam dipilih (<span id="selectedCount">0</span>)</button>
+        <button class="btn btn-soft danger" id="clearAllBtn">Kosongkan senarai</button>
+        <button class="btn btn-soft" id="logoutBtn">Log keluar</button>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="select-hint">Kotak pilihan kekal walaupun anda bertukar halaman atau membuat carian. Kotak di tajuk memilih semua baris yang sepadan dengan carian.</div>
+      <table id="participantsTable" class="table table-hover align-middle w-100">
+        <thead>
+          <tr>
+            <th class="checkbox-col"><input type="checkbox" class="form-check-input" id="selectAllCheckbox" aria-label="Pilih semua"></th>
+            <th>#</th>
+            <th>Nama Penuh</th>
+            <th>No. MyKad</th>
+            <th>Penyertaan</th>
+            <th>Tarikh Daftar</th>
+            <th>Daftar</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+<script src="https://cdn.datatables.net/2.1.8/js/dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/2.1.8/js/dataTables.bootstrap5.min.js"></script>
 <!-- SheetJS: client-side Excel (.xlsx) export -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-<!-- SweetAlert2 -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script type="module">
@@ -190,7 +307,6 @@
 
   const SUPABASE_URL = 'https://brcxlubmlymtpiwbjwez.supabase.co'
   const SUPABASE_ANON_KEY = 'sb_publishable_VX22OseUPH_DdPN_jasgWA_1Vtwg4u9'
-
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
   const loginScreen = document.getElementById('loginScreen')
@@ -198,132 +314,129 @@
   const loginForm = document.getElementById('loginForm')
   const loginBtn = document.getElementById('loginBtn')
   const logoutBtn = document.getElementById('logoutBtn')
-  const participantsBody = document.getElementById('participantsBody')
   const totalCount = document.getElementById('totalCount')
-  const searchBox = document.getElementById('searchBox')
+  const uniqueCount = document.getElementById('uniqueCount')
   const exportBtn = document.getElementById('exportBtn')
   const deleteSelectedBtn = document.getElementById('deleteSelectedBtn')
   const selectedCountSpan = document.getElementById('selectedCount')
   const clearAllBtn = document.getElementById('clearAllBtn')
   const selectAllCheckbox = document.getElementById('selectAllCheckbox')
 
+  let table = null
   let allParticipants = []
-  let currentList = []          // whatever's currently rendered (respects search)
-  const selectedIds = new Set() // ids of currently ticked rows
+  const selectedIds = new Set()   // dikekalkan merentasi halaman & carian (id sebagai string)
 
-    let sortState = { key: 'created_at', dir: 'desc' } // default: newest first
-
-  function sortList(list) {
-    const sorted = [...list]
-    sorted.sort((a, b) => {
-      let valA = a[sortState.key]
-      let valB = b[sortState.key]
-
-      if (sortState.key === 'urus_setia') {
-        valA = valA ? 1 : 0
-        valB = valB ? 1 : 0
-      } else if (sortState.key === 'created_at') {
-        valA = new Date(valA).getTime()
-        valB = new Date(valB).getTime()
-      } else {
-        valA = (valA || '').toString().toLowerCase()
-        valB = (valB || '').toString().toLowerCase()
-      }
-
-      if (valA < valB) return sortState.dir === 'asc' ? -1 : 1
-      if (valA > valB) return sortState.dir === 'asc' ? 1 : -1
-      return 0
-    })
-    return sorted
+  function esc(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
   }
-
-  function updateSortIcons() {
-    document.querySelectorAll('th.sortable').forEach(th => {
-      const icon = th.querySelector('.sort-icon')
-      if (th.dataset.sort === sortState.key) {
-        icon.textContent = sortState.dir === 'asc' ? '▲' : '▼'
-        icon.classList.add('active')
-      } else {
-        icon.textContent = '↕'
-        icon.classList.remove('active')
-      }
-    })
-  }
-
-  document.querySelectorAll('th.sortable').forEach(th => {
-    th.addEventListener('click', () => {
-      const key = th.dataset.sort
-      if (sortState.key === key) {
-        sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc'
-      } else {
-        sortState.key = key
-        sortState.dir = 'asc'
-      }
-      updateSortIcons()
-      renderRows(currentList)
-    })
-  })
-
-  updateSortIcons()
 
   function formatDate(iso) {
+    if (!iso) return '-'
     const d = new Date(iso)
     return d.toLocaleString('ms-MY', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  }
+
+  // ---------------- DataTable ----------------
+  function initTable() {
+    table = $('#participantsTable').DataTable({
+      data: [],
+      pageLength: 25,
+      lengthMenu: [10, 25, 50, 100],
+      order: [[5, 'desc']],
+      autoWidth: false,
+      columns: [
+        {
+          data: null, orderable: false, searchable: false, className: 'checkbox-col',
+          render: (d, type, row) => `<input type="checkbox" class="form-check-input row-checkbox" data-id="${esc(row.id)}">`
+        },
+        { data: null, orderable: false, searchable: false, className: 'num-col', defaultContent: '' },
+        { data: 'full_name', render: (d, type) => type === 'display' ? esc(d) : (d || '') },
+        { data: 'mykad_number', className: 'mykad-cell' },
+        {
+          data: 'urus_setia',
+          render: (d, type) => {
+            if (type === 'display') return d ? '<span class="badge-soft urus">Urus Setia</span>' : '<span class="badge-soft awam">Awam</span>'
+            if (type === 'filter') return d ? 'Urus Setia' : 'Awam'
+            return d ? 1 : 0
+          }
+        },
+        {
+          data: 'reg_at', className: 'date-cell',
+          render: (d, type) => (type === 'sort' || type === 'type') ? (d ? new Date(d).getTime() : 0) : formatDate(d)
+        },
+        {
+          data: 'reg_count',
+          render: (d, type) => (type === 'display' && d > 1) ? `<span class="badge-soft multi">×${d}</span>` : d
+        }
+      ],
+      language: {
+        search: '',
+        searchPlaceholder: 'Cari nama / MyKad...',
+        lengthMenu: '_MENU_ baris setiap halaman',
+        info: 'Memaparkan _START_ hingga _END_ daripada _TOTAL_ pendaftaran',
+        infoEmpty: 'Tiada pendaftaran',
+        infoFiltered: '(ditapis daripada _MAX_)',
+        zeroRecords: 'Tiada peserta dijumpai.',
+        emptyTable: 'Tiada peserta.',
+        paginate: { first: 'Pertama', last: 'Akhir', next: 'Seterusnya', previous: 'Sebelumnya' }
+      },
+      drawCallback: function () {
+        const api = this.api()
+        const start = api.page.info().start
+
+        // nombor siri mengikut susunan paparan
+        api.column(1, { page: 'current' }).nodes().each((cell, i) => { cell.textContent = start + i + 1 })
+
+        // pulihkan kotak pilihan untuk baris yang kelihatan
+        $(api.table().body()).find('.row-checkbox').each(function () {
+          const on = selectedIds.has(this.dataset.id)
+          this.checked = on
+          this.closest('tr').classList.toggle('row-selected', on)
+        })
+        updateSelectionUI()
+      }
+    })
+  }
+
+  function getFilteredIds() {
+    return table.rows({ search: 'applied' }).data().toArray().map(r => String(r.id))
   }
 
   function updateSelectionUI() {
     deleteSelectedBtn.disabled = selectedIds.size === 0
     selectedCountSpan.textContent = selectedIds.size
-    const rowBoxes = participantsBody.querySelectorAll('.row-checkbox')
-    selectAllCheckbox.checked = rowBoxes.length > 0 && selectedIds.size === rowBoxes.length
-    selectAllCheckbox.indeterminate = selectedIds.size > 0 && selectedIds.size < rowBoxes.length
+
+    const ids = getFilteredIds()
+    let inFilter = 0
+    for (const id of ids) if (selectedIds.has(id)) inFilter++
+    selectAllCheckbox.checked = ids.length > 0 && inFilter === ids.length
+    selectAllCheckbox.indeterminate = inFilter > 0 && inFilter < ids.length
   }
 
-    function renderRows(list) {
-    currentList = sortList(list)
-    selectedIds.clear() // selection is tied to what's visible; a new render starts fresh
-
-    if (list.length === 0) {
-      participantsBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">Tiada peserta dijumpai.</td></tr>`
-      updateSelectionUI()
-      return
-    }
-    participantsBody.innerHTML = list.map((p, i) => `
-      <tr>
-        <td class="checkbox-col"><input type="checkbox" class="form-check-input row-checkbox" data-id="${p.id}"></td>
-        <td>${i + 1}</td>
-        <td>${p.full_name}</td>
-        <td>${p.mykad_number}</td>
-        <td>${p.urus_setia ? 'Urus Setia' : 'Awam'}</td>
-        <td>${formatDate(p.created_at)}</td>
-      </tr>
-    `).join('')
-    updateSelectionUI()
-  }
-
-  // One delegated listener handles every row checkbox, including rows
-  // added by future re-renders, instead of re-binding per row.
-  participantsBody.addEventListener('change', (e) => {
-    if (!e.target.classList.contains('row-checkbox')) return
-    const id = e.target.dataset.id
-    if (e.target.checked) selectedIds.add(id)
+  $('#participantsTable tbody').on('change', '.row-checkbox', function () {
+    const id = this.dataset.id
+    if (this.checked) selectedIds.add(id)
     else selectedIds.delete(id)
+    this.closest('tr').classList.toggle('row-selected', this.checked)
     updateSelectionUI()
   })
 
   selectAllCheckbox.addEventListener('change', () => {
-    const rowBoxes = participantsBody.querySelectorAll('.row-checkbox')
-    rowBoxes.forEach(cb => {
-      cb.checked = selectAllCheckbox.checked
-      if (selectAllCheckbox.checked) selectedIds.add(cb.dataset.id)
-      else selectedIds.delete(cb.dataset.id)
+    const ids = getFilteredIds()
+    if (selectAllCheckbox.checked) ids.forEach(id => selectedIds.add(id))
+    else ids.forEach(id => selectedIds.delete(id))
+    $(table.table().body()).find('.row-checkbox').each(function () {
+      const on = selectedIds.has(this.dataset.id)
+      this.checked = on
+      this.closest('tr').classList.toggle('row-selected', on)
     })
     updateSelectionUI()
   })
 
+  initTable()
+
+  // ---------------- Muat data (dipaparkan 1000 baris setiap permintaan) ----------------
   async function loadParticipants() {
-    // PostgREST caps a single request at 1000 rows by default, so fetching
-    // beyond that silently truncates unless we page through with .range().
     const pageSize = 1000
     let from = 0
     let allData = []
@@ -332,22 +445,33 @@
       const { data, error } = await supabase
         .from('participants')
         .select('*')
-        .order('created_at', { ascending: false })
+        .order('id', { ascending: true })
         .range(from, from + pageSize - 1)
 
       if (error) {
-        participantsBody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-4">Ralat: ${error.message}</td></tr>`
+        Swal.fire('Ralat', 'Gagal memuatkan senarai: ' + error.message, 'error')
         return
       }
-
-      allData = allData.concat(data)
-      if (data.length < pageSize) break // last page reached
+      allData = allData.concat(data || [])
+      if (!data || data.length < pageSize) break
       from += pageSize
     }
 
-    allParticipants = allData
-    totalCount.textContent = `${allData.length} peserta`
-    renderRows(allData)
+    // Seorang boleh mendaftar lebih daripada sekali: kira bilangan pendaftaran bagi setiap No. MyKad.
+    const counts = new Map()
+    for (const p of allData) counts.set(p.mykad_number, (counts.get(p.mykad_number) || 0) + 1)
+
+    allParticipants = allData.map(p => ({
+      ...p,
+      reg_at: p.registered_at || p.created_at || null,
+      reg_count: counts.get(p.mykad_number) || 1
+    }))
+
+    selectedIds.clear()
+    table.clear().rows.add(allParticipants).draw()
+
+    totalCount.textContent = `${allParticipants.length} pendaftaran`
+    uniqueCount.textContent = `${counts.size} No. MyKad unik`
   }
 
   function showDashboard() {
@@ -355,13 +479,11 @@
     dashboardScreen.style.display = 'block'
     loadParticipants()
   }
-
   function showLogin() {
     loginScreen.style.display = 'flex'
     dashboardScreen.style.display = 'none'
   }
 
-  // Check if already logged in on page load
   supabase.auth.getSession().then(({ data: { session } }) => {
     if (session) showDashboard()
   })
@@ -373,9 +495,7 @@
 
     loginBtn.disabled = true
     loginBtn.textContent = 'Menyemak...'
-
     const { error } = await supabase.auth.signInWithPassword({ email, password })
-
     loginBtn.disabled = false
     loginBtn.textContent = 'Log Masuk'
 
@@ -383,7 +503,6 @@
       Swal.fire('Ralat', 'Emel atau kata laluan salah.', 'error')
       return
     }
-
     showDashboard()
   })
 
@@ -392,33 +511,17 @@
     showLogin()
   })
 
-  searchBox.addEventListener('input', () => {
-    const term = searchBox.value.toLowerCase().trim()
-    if (!term) {
-      renderRows(allParticipants)
-      return
-    }
-    const filtered = allParticipants.filter(p =>
-      p.full_name.toLowerCase().includes(term) ||
-      p.mykad_number.includes(term)
-    )
-    renderRows(filtered)
-  })
-
-  // ---------------- Export to Excel ----------------
-  // Exports whatever is currently displayed (respects the active search filter).
-  // Fetched fresh each click so it reflects any draw that happened since page load.
+  // ---------------- Eksport ke Excel ----------------
+  // Mengeksport baris yang sedang ditapis, mengikut susunan jadual (semua halaman, bukan halaman semasa sahaja).
   async function getWonParticipantIds() {
     const { data, error } = await supabase.from('winners').select('participant_id')
-    if (error) {
-      console.error(error)
-      return new Set()
-    }
-    return new Set((data || []).map(w => w.participant_id))
+    if (error) { console.error(error); return new Set() }
+    return new Set((data || []).map(w => String(w.participant_id)))
   }
 
   exportBtn.addEventListener('click', async () => {
-    if (currentList.length === 0) {
+    const list = table.rows({ search: 'applied', order: 'applied' }).data().toArray()
+    if (list.length === 0) {
       Swal.fire('Tiada Data', 'Tiada peserta untuk dieksport.', 'info')
       return
     }
@@ -427,90 +530,83 @@
     exportBtn.textContent = 'Menyediakan...'
 
     const wonIds = await getWonParticipantIds()
-
-      const rows = currentList.map((p, i) => ({
+    const rows = list.map((p, i) => ({
       '#': i + 1,
       'Nama Penuh': p.full_name,
       'No. MyKad': p.mykad_number,
-      'No. Telefon': p.phone_number || '-',
-      'Emel': p.email || '-',
       'Penyertaan': p.urus_setia ? 'Urus Setia' : 'Awam',
-      'Tarikh Daftar': formatDate(p.created_at),
-      'Winner': wonIds.has(p.id) ? 'Yes' : 'No'
+      'Tarikh Daftar': formatDate(p.reg_at),
+      'Bil. Pendaftaran': p.reg_count,
+      'Winner': wonIds.has(String(p.id)) ? 'Yes' : 'No'
     }))
 
     const worksheet = XLSX.utils.json_to_sheet(rows)
     const workbook = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Peserta')
-
-    const dateStamp = new Date().toISOString().slice(0, 10)
-    XLSX.writeFile(workbook, `senarai-peserta-${dateStamp}.xlsx`)
+    XLSX.writeFile(workbook, `senarai-peserta-${new Date().toISOString().slice(0, 10)}.xlsx`)
 
     exportBtn.disabled = false
-    exportBtn.textContent = '📤 Eksport ke Excel'
+    exportBtn.textContent = 'Eksport ke Excel'
   })
 
-  // ---------------- Delete selected rows ----------------
+  // ---------------- Padam baris dipilih ----------------
   deleteSelectedBtn.addEventListener('click', async () => {
     if (selectedIds.size === 0) return
 
     const result = await Swal.fire({
       icon: 'warning',
-      title: `Padam ${selectedIds.size} peserta?`,
+      title: `Padam ${selectedIds.size} pendaftaran?`,
       text: 'Tindakan ini tidak boleh dibatalkan.',
       showCancelButton: true,
       confirmButtonText: 'Ya, padam',
       cancelButtonText: 'Batal',
-      confirmButtonColor: '#dc3545'
+      confirmButtonColor: '#dc2626'
     })
     if (!result.isConfirmed) return
 
-    const idsToDelete = Array.from(selectedIds)
-    const { error } = await supabase.from('participants').delete().in('id', idsToDelete)
-
-    if (error) {
-      const msg = error.code === '23503'
-        ? 'Sebahagian peserta yang dipilih sudah pernah menang cabutan, jadi tidak boleh dipadam terus. Padam rekod kemenangan mereka dahulu jika benar-benar mahu memadam peserta ini.'
-        : 'Gagal memadam: ' + error.message
-      Swal.fire('Ralat', msg, 'error')
-      return
+    // Dipadam secara kelompok supaya URL permintaan tidak terlalu panjang.
+    const ids = Array.from(selectedIds)
+    let failed = null
+    for (let i = 0; i < ids.length; i += 100) {
+      const { error } = await supabase.from('participants').delete().in('id', ids.slice(i, i + 100))
+      if (error) { failed = error; break }
     }
 
-    Swal.fire({ icon: 'success', title: 'Berjaya dipadam', timer: 1500, showConfirmButton: false })
+    if (failed) {
+      const msg = failed.code === '23503'
+        ? 'Sebahagian peserta yang dipilih sudah pernah menang cabutan, jadi tidak boleh dipadam terus. Padam rekod kemenangan mereka dahulu jika benar-benar mahu memadam peserta ini.'
+        : 'Gagal memadam: ' + failed.message
+      Swal.fire('Ralat', msg, 'error')
+    } else {
+      Swal.fire({ icon: 'success', title: 'Berjaya dipadam', timer: 1500, showConfirmButton: false })
+    }
     await loadParticipants()
   })
 
-  // ---------------- Clear entire list (prep for a new program) ----------------
-  // Destructive and irreversible, so it requires typing PADAM to confirm
-  // rather than a single click.
+  // ---------------- Kosongkan keseluruhan senarai ----------------
   clearAllBtn.addEventListener('click', async () => {
     const { value: confirmText } = await Swal.fire({
       icon: 'warning',
       title: 'Kosongkan SEMUA senarai peserta?',
-      html: `Ini akan memadam <strong>${allParticipants.length} peserta</strong> secara kekal — sesuai untuk sedia senarai baharu bagi program akan datang.<br><br>Taip <strong>PADAM</strong> untuk mengesahkan:`,
+      html: `Ini akan memadam <strong>${allParticipants.length} pendaftaran</strong> secara kekal.<br><br>Taip <strong>PADAM</strong> untuk mengesahkan:`,
       input: 'text',
       inputPlaceholder: 'PADAM',
       showCancelButton: true,
       confirmButtonText: 'Kosongkan Senarai',
-      confirmButtonColor: '#dc3545',
+      confirmButtonColor: '#dc2626',
       cancelButtonText: 'Batal',
       preConfirm: (value) => {
-        if (value !== 'PADAM') {
-          Swal.showValidationMessage('Sila taip PADAM dengan tepat untuk mengesahkan.')
-        }
+        if (value !== 'PADAM') Swal.showValidationMessage('Sila taip PADAM dengan tepat untuk mengesahkan.')
         return value
       }
     })
     if (confirmText !== 'PADAM') return
 
-    // Supabase requires an explicit filter on delete (no unconditional
-    // "delete everything") — this condition matches every row since
-    // every participant has a non-null id.
     const { error } = await supabase.from('participants').delete().not('id', 'is', null)
 
     if (error) {
       const msg = error.code === '23503'
-        ? 'Tidak dapat mengosongkan senarai kerana masih ada rekod pemenang berkaitan. Jalankan SQL untuk membenarkan padam berlonggok (ON DELETE CASCADE) — rujuk arahan yang diberikan.'
+        ? 'Tidak dapat mengosongkan senarai kerana masih ada rekod pemenang berkaitan. Jalankan SQL untuk membenarkan padam berlonggok (ON DELETE CASCADE).'
         : 'Gagal mengosongkan senarai: ' + error.message
       Swal.fire('Ralat', msg, 'error')
       return
