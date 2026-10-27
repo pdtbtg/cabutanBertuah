@@ -802,7 +802,7 @@ soundUnlockBtn.addEventListener('click', () => {
     /* ============================================================
      NAMA PADA BELON: teks dicetak pada permukaan melengkung & beralun
      ============================================================ */
-  const LABEL_W = 1.7, LABEL_H = 0.64, LABEL_R = 1.0
+  const LABEL_W = 1.7, LABEL_H = 0.64
 
   function createNameLabel(text, colorHex) {
     const W = 768, H = 288, PAD = 48
@@ -857,25 +857,47 @@ soundUnlockBtn.addEventListener('click', () => {
     texture.anisotropy = 4
 
     const geo = new THREE.PlaneGeometry(LABEL_W, LABEL_H, 32, 8)
-    const mat = new THREE.MeshBasicMaterial({ map: texture, alphaTest: 0.35 })
+    const mat = new THREE.MeshBasicMaterial({
+      map: texture,
+      alphaTest: 0.35,
+      polygonOffset: true,       // label sentiasa menang berbanding badan belon sendiri
+      polygonOffsetFactor: -2,
+      polygonOffsetUnits: -2,
+    })
     const mesh = new THREE.Mesh(geo, mat)
     mesh.position.set(0, 1.42, 0)
     mesh.frustumCulled = false
     mesh.userData.base = geo.attributes.position.array.slice()
     return mesh
   }
-
+  // Jejari sebenar belon pada ketinggian y (mesti sepadan dengan profil dalam buildBalloonGeometry:
+  // tinggi 1.22 dan nilai 'slim'). Jika anda ubah bentuk belon, ubah di sini juga.
+  function balloonRadiusAt(y) {
+    const c = Math.min(1, Math.max(-1, 1 - y / 1.22))
+    const a = Math.acos(c)
+    const t = a / Math.PI
+    const s = Math.min(1, t / 0.5)
+    const slim = 0.55 + 0.45 * (s * s * (3 - 2 * s))
+    return Math.sin(a) * slim
+  }
+  const LABEL_Y = 1.42     // mesti sama dengan mesh.position.y dalam createNameLabel
+  const LABEL_GAP = 0.06   // jarak label di hadapan permukaan belon
   // Bengkokkan label mengikut bentuk belon, kemudian tambah ombak
-  function updateLabelWave(b, t) {
+   function updateLabelWave(b, t) {
     const pos = b.label.geometry.attributes.position
     const base = b.label.userData.base
     const A = CONFIG.labelWaveAmp, F = CONFIG.labelWaveFreq, S = CONFIG.labelWaveSpeed
     for (let i = 0; i < pos.count; i++) {
       const x = base[i * 3], y = base[i * 3 + 1]
       const phase = x * F + t * S + b.swaySeed
-      const z = Math.sqrt(Math.max(0.04, LABEL_R * LABEL_R - x * x - y * y * 0.5)) + 0.02
-              + Math.cos(phase) * A * 0.5
-      pos.setXYZ(i, x, y + Math.sin(phase) * A, z)
+      const yw = y + Math.sin(phase) * A
+
+      // ikut permukaan sebenar belon, ombak hanya menolak ke LUAR (tidak pernah ke dalam)
+      const r = balloonRadiusAt(LABEL_Y + yw)
+      const surface = Math.sqrt(Math.max(0.01, r * r - x * x))
+      const z = surface + LABEL_GAP + (0.5 + 0.5 * Math.cos(phase)) * A * 0.6
+
+      pos.setXYZ(i, x, yw, z)
     }
     pos.needsUpdate = true
   }
