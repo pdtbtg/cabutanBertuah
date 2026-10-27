@@ -306,6 +306,28 @@ const SoundManager = (() => {
   let popBuffer = null
   let revealBuffer = null
 
+  /* ===== TETAPAN BUNYI - ubah di sini ===== */
+  const SOUND_CFG = {
+    master: 0.9,
+    ambient: true,          // muzik latar lembut + kerlipan loceng semasa idle
+    ambientVolume: 0.5,
+    twinkleVolume: 0.035,
+    drumRoll: true,         // dram bergolek (perlu langkah 2 pilihan)
+    applause: true,         // tepukan selepas nama pemenang dipaparkan
+    applauseVolume: 0.4,
+    releaseVolume: 1,       // kuat bunyi setiap belon keluar dari kotak
+  }
+
+  const TWINKLE_NOTES = [1046.5, 1174.7, 1318.5, 1568.0, 1760.0]
+  const PLUCK_NOTES = [523.25, 587.33, 659.25, 783.99, 880.0, 1046.5, 1174.7, 1318.5]
+  let pluckIdx = 2
+  let master = null
+  let noiseCache = null
+  let ambient = null
+  let twinkleTimer = null
+  let resumeTimer = null
+  let rollGain = null
+
   function getCtx() {
     if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)()
     return ctx
@@ -332,6 +354,23 @@ const SoundManager = (() => {
     }
   })()
 
+  // Bas utama + had kuat bunyi, supaya banyak bunyi bertindih tidak pecah
+  function dest() {
+    const c = getCtx()
+    if (!master) {
+      master = c.createGain()
+      master.gain.value = SOUND_CFG.master
+      const comp = c.createDynamicsCompressor()
+      comp.threshold.value = -14
+      comp.knee.value = 20
+      comp.ratio.value = 6
+      comp.attack.value = 0.005
+      comp.release.value = 0.2
+      master.connect(comp).connect(c.destination)
+    }
+    return master
+  }
+
   function playBuffer(buffer, { volume = 1, delay = 0, offset = 0 } = {}) {
     if (!unlocked || !buffer) return
     const c = getCtx()
@@ -339,8 +378,8 @@ const SoundManager = (() => {
     src.buffer = buffer
     const gain = c.createGain()
     gain.gain.value = volume
-    src.connect(gain).connect(c.destination)
-    src.start(c.currentTime + delay, offset)   // ← offset skips leading silence
+    src.connect(gain).connect(dest())
+    src.start(c.currentTime + delay, offset)
     return src
   }
 
@@ -358,6 +397,7 @@ const SoundManager = (() => {
     for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1
     return buffer
   }
+  function noiseBuf() { return noiseCache || (noiseCache = createNoiseBuffer(2)) }
 
   function tone(freq, duration = 0.3, type = 'sine', volume = 0.3) {
     if (!unlocked) return
@@ -368,79 +408,323 @@ const SoundManager = (() => {
     osc.frequency.value = freq
     gain.gain.setValueAtTime(volume, c.currentTime)
     gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + duration)
-    osc.connect(gain).connect(c.destination)
+    osc.connect(gain).connect(dest())
     osc.start()
     osc.stop(c.currentTime + duration)
   }
 
-  function noise({ duration = 0.5, volume = 0.3, filterFreq = 800, filterType = 'bandpass' } = {}) {
-    if (!unlocked) return
+  function panNode(pan = 0) {
     const c = getCtx()
-    const src = c.createBufferSource()
-    src.buffer = createNoiseBuffer(duration)
-    const filter = c.createBiquadFilter()
-    filter.type = filterType
-    filter.frequency.value = filterFreq
-    const gain = c.createGain()
-    gain.gain.setValueAtTime(volume, c.currentTime)
-    gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + duration)
-    src.connect(filter).connect(gain).connect(c.destination)
-    src.start()
-    src.stop(c.currentTime + duration)
+    if (!c.createStereoPanner) return c.createGain()
+    const p = c.createStereoPanner()
+    p.pan.value = Math.max(-1, Math.min(1, pan))
+    return p
+  }
+  function envelope(g, t, peak, attack, decay) {
+    g.gain.setValueAtTime(0.0001, t)
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0001, peak), t + attack)
+    g.gain.exponentialRampToValueAtTime(0.0001, t + attack + decay)
   }
 
-  function shakeStart() {
+  function noiseHit({ when = 0, dur = 0.05, type = 'bandpass', freq = 2000, q = 1, volume = 0.2, pan = 0, sweepTo = null, out = null } = {}) {
+    const c = getCtx(), t = c.currentTime + when
+    const src = c.createBufferSource()
+    src.buffer = noiseBuf()
+    const f = c.createBiquadFilter()
+    f.type = type
+    f.Q.value = q
+    f.frequency.setValueAtTime(freq, t)
+    if (sweepTo) f.frequency.exponentialRampToValueAtTime(sweepTo, t + dur)
+    const g = c.createGain()
+    envelope(g, t, volume, 0.003, dur)
+    src.connect(f).connect(g).connect(panNode(pan)).connect(out || dest())
+    src.start(t, Math.random() * 1.2)
+    src.stop(t + dur + 0.05)
+  }
+
+  function toneHit({ when = 0, freq = 440, toFreq = null, dur = 0.2, type = 'sine', volume = 0.15, attack = 0.004, pan = 0, out = null } = {}) {
+    const c = getCtx(), t = c.currentTime + when
+    const o = c.createOscillator()
+    o.type = type
+    o.frequency.setValueAtTime(freq, t)
+    if (toFreq) o.frequency.exponentialRampToValueAtTime(toFreq, t + dur)
+    const g = c.createGain()
+    envelope(g, t, volume, attack, dur)
+    o.connect(g).connect(panNode(pan)).connect(out || dest())
+    o.start(t)
+    o.stop(t + attack + dur + 0.05)
+  }
+
+  function chime(freq, { when = 0, volume = 0.05, pan = 0, decay = 1.4 } = {}) {
+    if (!unlocked) return
+    ;[[1, 1], [2.76, 0.35], [5.4, 0.12]].forEach(([mult, amp]) => {
+      toneHit({ when, freq: freq * mult, dur: decay / mult, volume: volume * amp, pan })
+    })
+  }
+
+  /* ---------- 1) IDLE: pad latar + kerlipan loceng ---------- */
+  function ambientStart() {
+    if (!unlocked || !SOUND_CFG.ambient || ambient) return
+    const c = getCtx(), t = c.currentTime
+    const gain = c.createGain()
+    gain.gain.setValueAtTime(0.0001, t)
+    gain.gain.linearRampToValueAtTime(SOUND_CFG.ambientVolume, t + 3)
+
+    const filter = c.createBiquadFilter()
+    filter.type = 'lowpass'
+    filter.frequency.value = 900
+    filter.Q.value = 0.7
+
+    const lfo = c.createOscillator()
+    lfo.frequency.value = 0.07
+    const lfoGain = c.createGain()
+    lfoGain.gain.value = 350
+    lfo.connect(lfoGain).connect(filter.frequency)
+    lfo.start(t)
+
+    const oscs = []
+    ;[130.81, 196.0, 293.66, 329.63].forEach((f, i) => {
+      ;[-6, 6].forEach((detune) => {
+        const o = c.createOscillator()
+        o.type = 'triangle'
+        o.frequency.value = f
+        o.detune.value = detune
+        const g = c.createGain()
+        g.gain.value = 0.05 / (1 + i * 0.3)
+        o.connect(g).connect(filter)
+        o.start(t)
+        oscs.push(o)
+      })
+    })
+    filter.connect(gain).connect(dest())
+    ambient = { gain, oscs, lfo }
+    scheduleTwinkle()
+  }
+
+  function scheduleTwinkle() {
+    clearTimeout(twinkleTimer)
+    if (!ambient) return
+    twinkleTimer = setTimeout(() => {
+      if (!ambient) return
+      chime(TWINKLE_NOTES[Math.floor(Math.random() * TWINKLE_NOTES.length)],
+        { volume: SOUND_CFG.twinkleVolume, pan: Math.random() * 1.6 - 0.8, decay: 1.8 })
+      scheduleTwinkle()
+    }, 1800 + Math.random() * 3200)
+  }
+
+  function ambientStop(fade = 0.8) {
+    clearTimeout(twinkleTimer)
+    if (!ambient) return
+    const c = getCtx(), a = ambient
+    ambient = null
+    const t = c.currentTime
+    a.gain.gain.cancelScheduledValues(t)
+    a.gain.gain.setValueAtTime(a.gain.gain.value, t)
+    a.gain.gain.linearRampToValueAtTime(0.0001, t + fade)
+    setTimeout(() => {
+      a.oscs.forEach((o) => { try { o.stop() } catch (e) {} })
+      try { a.lfo.stop() } catch (e) {}
+    }, fade * 1000 + 100)
+  }
+
+  /* ---------- 2) KOTAK BERGEGAR & TERBUKA ---------- */
+  function shakeStart(ms = 750) {
     if (!unlocked || shakeNode) return
-    const c = getCtx()
+    ambientStop(0.7)
+    clearTimeout(resumeTimer)
+    const c = getCtx(), t = c.currentTime, dur = ms / 1000
+
     const src = c.createBufferSource()
     src.buffer = createNoiseBuffer(2)
     src.loop = true
-    const filter = c.createBiquadFilter()
-    filter.type = 'lowpass'
-    filter.frequency.value = 200
-    const gain = c.createGain()
-    gain.gain.value = 0.25
-    src.connect(filter).connect(gain).connect(c.destination)
+    const lp0 = c.createBiquadFilter()
+    lp0.type = 'lowpass'
+    lp0.frequency.value = 200
+    const g0 = c.createGain()
+    g0.gain.value = 0.22
+    src.connect(lp0).connect(g0).connect(dest())
     src.start()
     shakeNode = src
+
+    const o = c.createOscillator()
+    o.type = 'sawtooth'
+    o.frequency.setValueAtTime(70, t)
+    o.frequency.exponentialRampToValueAtTime(420, t + dur)
+    const lp = c.createBiquadFilter()
+    lp.type = 'lowpass'
+    lp.frequency.setValueAtTime(300, t)
+    lp.frequency.exponentialRampToValueAtTime(2200, t + dur)
+    const g2 = c.createGain()
+    g2.gain.setValueAtTime(0.0001, t)
+    g2.gain.exponentialRampToValueAtTime(0.09, t + dur)
+    g2.gain.linearRampToValueAtTime(0.0001, t + dur + 0.08)
+    o.connect(lp).connect(g2).connect(dest())
+    o.start(t)
+    o.stop(t + dur + 0.1)
+
+    const hits = Math.round(dur * 16)
+    for (let i = 0; i < hits; i++) {
+      noiseHit({
+        when: (i / hits) * dur + Math.random() * 0.02, dur: 0.03, type: 'bandpass',
+        freq: 1800 + Math.random() * 2200, q: 3, volume: 0.07 + 0.07 * (i / hits),
+        pan: Math.random() * 0.8 - 0.4,
+      })
+    }
   }
 
   function shakeStop() {
     if (shakeNode) { shakeNode.stop(); shakeNode = null }
   }
 
+  function openSound() {
+    if (!unlocked) return
+    noiseHit({ dur: 0.55, type: 'bandpass', freq: 400, sweepTo: 4200, q: 0.8, volume: 0.28 })
+    toneHit({ freq: 140, toFreq: 55, dur: 0.18, volume: 0.3 })
+    ;[1046.5, 1318.5, 1568, 2093].forEach((f, i) =>
+      chime(f, { when: 0.08 + i * 0.06, volume: 0.06, decay: 1.6, pan: i % 2 ? 0.4 : -0.4 }))
+  }
+
+  /* ---------- 3) BELON KELUAR DARI KOTAK ---------- */
+  function releaseSound() {
+    if (!unlocked) return
+    const pan = Math.random() * 1.2 - 0.6
+    const v = SOUND_CFG.releaseVolume
+    noiseHit({ dur: 0.22, type: 'bandpass', freq: 700, sweepTo: 2600, q: 0.9, volume: 0.07 * v, pan })
+    toneHit({ freq: 230, toFreq: 540, dur: 0.1, type: 'triangle', volume: 0.1 * v, pan })
+    pluckIdx = Math.max(0, Math.min(PLUCK_NOTES.length - 1,
+      pluckIdx + [-2, -1, 1, 1, 2][Math.floor(Math.random() * 5)]))
+    const f = PLUCK_NOTES[pluckIdx]
+    toneHit({ when: 0.03, freq: f, dur: 0.38, volume: 0.09 * v, pan })
+    toneHit({ when: 0.03, freq: f * 4, dur: 0.08, volume: 0.025 * v, pan })
+  }
+
+  /* ---------- 4) BELON PECAH ---------- */
+  function popSound(when = 0, pan = 0) {
+    noiseHit({ when, dur: 0.07, type: 'highpass', freq: 900 + Math.random() * 900, volume: 0.28, pan })
+    toneHit({ when, freq: 260 * (0.8 + Math.random() * 0.5), toFreq: 50, dur: 0.09, volume: 0.3, pan })
+  }
+  function burstCascade(count = 12) {
+    if (!unlocked) return
+    const n = Math.min(count, 16)
+    for (let i = 0; i < n; i++) popSound(0.15 + Math.random() * 0.7, Math.random() * 1.6 - 0.8)
+  }
+  function boom() {
+    toneHit({ freq: 110, toFreq: 38, dur: 0.55, volume: 0.45, attack: 0.002 })
+    noiseHit({ dur: 0.25, type: 'lowpass', freq: 1800, sweepTo: 200, volume: 0.35 })
+    noiseHit({ dur: 0.12, type: 'highpass', freq: 3000, volume: 0.3 })
+  }
+
+  /* ---------- 5) DRAM BERGOLEK (belon pemenang mengembang) ---------- */
+  function drumRollStart(ms) {
+    if (!unlocked || !SOUND_CFG.drumRoll) return
+    drumRollStop(0.01)
+    const c = getCtx(), t0 = c.currentTime, dur = ms / 1000
+    const g = c.createGain()
+    g.gain.value = 1
+    g.connect(dest())
+    rollGain = g
+
+    let t = 0
+    while (t < dur) {
+      const p = t / dur
+      const vol = 0.06 + 0.22 * p
+      noiseHit({ when: t, dur: 0.06, type: 'bandpass', freq: 1900, q: 0.8, volume: vol, out: g })
+      toneHit({ when: t, freq: 200, toFreq: 130, dur: 0.05, volume: vol * 0.6, out: g })
+      t += 0.11 - 0.08 * p
+    }
+
+    const o = c.createOscillator()
+    o.type = 'sawtooth'
+    o.frequency.setValueAtTime(160, t0)
+    o.frequency.exponentialRampToValueAtTime(1100, t0 + dur)
+    const lp = c.createBiquadFilter()
+    lp.type = 'lowpass'
+    lp.frequency.value = 1400
+    const rg = c.createGain()
+    rg.gain.setValueAtTime(0.0001, t0)
+    rg.gain.exponentialRampToValueAtTime(0.07, t0 + dur)
+    o.connect(lp).connect(rg).connect(g)
+    o.start(t0)
+    o.stop(t0 + dur + 0.05)
+  }
+  function drumRollStop(fade = 0.04) {
+    if (!rollGain) return
+    const c = getCtx(), g = rollGain
+    rollGain = null
+    g.gain.cancelScheduledValues(c.currentTime)
+    g.gain.setValueAtTime(g.gain.value, c.currentTime)
+    g.gain.linearRampToValueAtTime(0, c.currentTime + fade)
+    setTimeout(() => g.disconnect(), 1500)
+  }
+
+  /* ---------- 6) NAMA PEMENANG DIPAPARKAN ---------- */
+  function applause(duration = 4.2, delay = 0.4) {
+    if (!unlocked || !SOUND_CFG.applause) return
+    const c = getCtx(), t0 = c.currentTime + delay
+    const src = c.createBufferSource()
+    src.buffer = noiseBuf()
+    src.loop = true
+    const bp = c.createBiquadFilter()
+    bp.type = 'bandpass'
+    bp.frequency.value = 2200
+    bp.Q.value = 0.5
+    const hp = c.createBiquadFilter()
+    hp.type = 'highpass'
+    hp.frequency.value = 700
+    const g = c.createGain()
+    g.gain.value = 0
+    src.connect(bp).connect(hp).connect(g).connect(dest())
+    for (let t = 0; t < duration; t += 0.03) {
+      const env = Math.min(1, t / 0.6) * Math.pow(1 - t / duration, 1.4)
+      const crackle = Math.random() < 0.55 ? 0.3 + Math.random() * 0.7 : 0.05
+      g.gain.setValueAtTime(SOUND_CFG.applauseVolume * env * crackle, t0 + t)
+    }
+    g.gain.setValueAtTime(0, t0 + duration)
+    src.start(t0)
+    src.stop(t0 + duration + 0.1)
+  }
+  function sparkleBurst(when = 0) {
+    ;[1046.5, 1318.5, 1568, 2093, 2637, 3136].forEach((f, i) =>
+      chime(f, { when: when + i * 0.07, volume: 0.07, pan: i % 2 ? 0.5 : -0.5, decay: 2 }))
+    for (let i = 0; i < 8; i++) {
+      const base = TWINKLE_NOTES[Math.floor(Math.random() * TWINKLE_NOTES.length)]
+      chime(base * (Math.random() < 0.5 ? 1 : 2),
+        { when: when + 0.5 + Math.random() * 2.2, volume: 0.04, pan: Math.random() * 1.6 - 0.8, decay: 1.4 })
+    }
+  }
+  function revealSound() {
+    playBuffer(revealBuffer, { volume: 0.85, delay: 0.08, offset: revealOnset })
+    sparkleBurst(0.15)
+    applause()
+    // 7) IDLE SEMULA: pad & loceng kembali perlahan selepas detik pemenang
+    clearTimeout(resumeTimer)
+    if (SOUND_CFG.ambient) resumeTimer = setTimeout(ambientStart, 7500)
+  }
+
   return {
-    unlock,
-    click:   () => tone(880, 0.08, 'square', 0.2),
-    shakeStart,
+    unlock: () => { unlock(); ambientStart() },
+    click: () => tone(880, 0.08, 'square', 0.2),
+    shakeStart: () => shakeStart(750),
     shakeStop,
-    open:    () => noise({ duration: 0.6, volume: 0.35, filterFreq: 1200, filterType: 'highpass' }),
-    release: () => {
-      if (!unlocked) return
-      const c = getCtx()
-      const t0 = c.currentTime
-      const dur = 0.35 + Math.random() * 0.15
-      const src = c.createBufferSource()
-      src.buffer = createNoiseBuffer(dur)
-      const filter = c.createBiquadFilter()
-      filter.type = 'bandpass'
-      filter.Q.value = 0.7
-      const baseFreq = 900 + Math.random() * 600
-      filter.frequency.setValueAtTime(baseFreq * 0.5, t0)
-      filter.frequency.linearRampToValueAtTime(baseFreq, t0 + dur * 0.4)
-      filter.frequency.linearRampToValueAtTime(baseFreq * 0.6, t0 + dur)
-      const gain = c.createGain()
-      gain.gain.setValueAtTime(0, t0)
-      gain.gain.linearRampToValueAtTime(0.06, t0 + dur * 0.3)
-      gain.gain.linearRampToValueAtTime(0.001, t0 + dur)
-      src.connect(filter).connect(gain).connect(c.destination)
-      src.start(t0)
-      src.stop(t0 + dur)
+    open: openSound,
+    release: releaseSound,
+    drumRoll: drumRollStart,
+    pop: () => {
+      drumRollStop()
+      boom()
+      playBuffer(popBuffer, { volume: 0.9, offset: popOnset })
+      burstCascade(12)
     },
-    pop:    () => playBuffer(popBuffer, { volume: 0.9, offset: popOnset }),
-    reveal: () => playBuffer(revealBuffer, { volume: 0.85, delay: 0.08, offset: revealOnset }),
+    reveal: revealSound,
   }
 })()
+
+// Klik atau tekan sebarang kekunci pada halaman juga mengaktifkan bunyi
+;['pointerdown', 'keydown'].forEach((evt) =>
+  window.addEventListener(evt, () => {
+    SoundManager.unlock()
+    document.getElementById('soundUnlockBtn').classList.add('hidden')
+  }, { once: true }))
 
 const soundUnlockBtn = document.getElementById('soundUnlockBtn')
 soundUnlockBtn.addEventListener('click', () => {
@@ -1178,6 +1462,10 @@ soundUnlockBtn.addEventListener('click', () => {
   
         if (b.isWinner && !b.popped && b.preBurstStartAt !== undefined && now >= b.preBurstStartAt) {
           const growMs = dramaticMode ? DRAMATIC.preBurstGrowMs : CONFIG.winnerPreBurstGrowMs
+          if (!b.rollStarted) {
+            b.rollStarted = true
+            SoundManager.drumRoll(Math.max(300, b.popAt - now))
+          }
           const scaleMult = dramaticMode ? DRAMATIC.preBurstScaleMult : CONFIG.winnerPreBurstScaleMult
           const growT = clamp01((now - b.preBurstStartAt) / growMs)
           const eased = easeInOutSine(growT)
