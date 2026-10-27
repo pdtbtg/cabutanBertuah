@@ -5,89 +5,102 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" href="assets/pahang.ico" type="image/x-icon">
 <title>Cabutan Bertuah</title>
-
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
-    --jg-blue: #010066;
-    --jg-blue-light: #1a2a8f;
-    --jg-red: #cc0001;
-    --jg-gold: #ffcc00;
+    --brand: #0f766e;
+    --accent: #f59e0b;
+    --ink: #ecfdf9;
   }
   * { box-sizing: border-box; }
   html, body {
     height: 100dvh;
     margin: 0;
     overflow: hidden;
-    background: rgba(10, 10, 10, 0.8);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #04302c;
+    color: var(--ink);
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
 
+  /* Stage backdrop: deep teal with a soft amber glow behind the gift box */
   body::before {
     content: "";
     position: fixed;
     inset: 0;
     z-index: 0;
     pointer-events: none;
-    background: url('assets/background.webp') right center / auto 100% no-repeat;
-    opacity: 0.4;
+    background:
+      radial-gradient(1200px 700px at 50% 92%, rgba(245,158,11,0.24), transparent 60%),
+      radial-gradient(900px 600px at 12% 0%, rgba(20,184,166,0.30), transparent 60%),
+      linear-gradient(160deg, #052e2b 0%, #0b4f4a 50%, #0f766e 100%);
   }
-  /* ---------------- Corporate brand bar, pinned top ---------------- */
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: url('assets/background.webp') right center / auto 100% no-repeat;
+    opacity: 0.12;
+    mix-blend-mode: soft-light;
+  }
+
+  /* ---------------- Brand bar ---------------- */
   .stage-brand-bar {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
+    top: 0; left: 0; right: 0;
+    z-index: 30;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: 0.5dvh;
-    padding: 1.8dvh 3vw;
+    gap: 0.7dvh;
+    padding: 2dvh 3vw 2.4dvh;
     text-align: center;
-    color: rgba(255,255,255,0.92);
-    text-shadow: 0 2px 10px rgba(0,0,0,0.6);
-    z-index: 30;
+    background: linear-gradient(180deg, rgba(3,32,29,0.8) 0%, rgba(3,32,29,0) 100%);
   }
-  .stage-brand-bar .eyebrow {
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
+  .brand-pill {
+    font-size: 2.1dvh;
     font-weight: 700;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: #3b2300;
+    background: linear-gradient(135deg, #fde68a, var(--accent));
+    padding: 0.6dvh 2.2dvh;
+    border-radius: 999px;
+    box-shadow: 0 4px 16px rgba(245,158,11,0.35);
   }
-  .stage-brand-bar .eyebrow-main {
-    font-size: 3.4dvh;
-    color: var(--jg-gold);
-    letter-spacing: 0.12em;
+  .brand-title {
+    font-size: 4.8dvh;
+    font-weight: 800;
+    line-height: 1.1;
+    color: #fff;
+    text-shadow: 0 2px 18px rgba(0,0,0,0.35);
   }
-  .stage-brand-bar .eyebrow-sub {
-    font-size: 2.9dvh;
-    opacity: 0.92;
+  .brand-sub {
+    font-size: 2.4dvh;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(236,253,249,0.82);
   }
 
-  /* ---------------- Three.js canvas, fills the stage behind all overlays ---------------- */
-  #three-canvas {
-    position: fixed;
-    inset: 0;
-    z-index: 1;
-    display: block;
-  }
+  #three-canvas { position: fixed; inset: 0; z-index: 1; display: block; }
 
-  /* Radial vignette used to fake a stage spotlight darkening the surroundings */
   #vignette {
     position: fixed;
     inset: 0;
     z-index: 5;
     pointer-events: none;
     opacity: 0;
-    background: radial-gradient(circle at 50% 58%, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 22%, rgba(1,0,40,0.86) 72%);
+    background: radial-gradient(circle at 50% 58%, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 22%, rgba(2,28,26,0.86) 72%);
     transition: opacity 0.4s linear;
   }
 
-  /* ---------------- Prize label, floats above the 3D scene during a draw ---------------- */
-    /* ---------------- Prize badge (trophy + prize name), floats above the 3D scene during a draw ---------------- */
+  /* ---------------- Prize badge ---------------- */
   #prizeOverlay {
     position: fixed;
-    left: 0;
-    right: 0;
+    left: 0; right: 0;
     z-index: 20;
     display: flex;
     align-items: center;
@@ -98,26 +111,29 @@
     pointer-events: none;
   }
   #prizeOverlay.visible { opacity: 1; }
+  .winner-badge { font-size: 3.6dvh; line-height: 1; }
+  .winner-badge:empty { display: none; }
   .winner-prize-badge {
     display: inline-block;
-    background: linear-gradient(135deg, #ffe066, var(--jg-gold));
-    color: var(--jg-blue);
-    font-weight: 800;
-    font-size: 2.6dvh;
-    letter-spacing: 0.04em;
+    background: rgba(4,40,37,0.6);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(253,230,138,0.55);
+    color: #fde68a;
+    font-weight: 700;
+    font-size: 2.8dvh;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    padding: 0.9dvh 2.4dvh;
+    padding: 1dvh 2.6dvh;
     border-radius: 999px;
-    box-shadow: 0 4px 14px rgba(255,204,0,0.35);
   }
   .winner-prize-badge:empty { display: none; }
-  .winner-badge:empty { display: none; }
-  /* ---------------- Winner name + MyKad, fades in once the balloon pops, centered full-screen ---------------- */
+
+  /* ---------------- Winner card ---------------- */
   #winnerOverlay {
     position: fixed;
     top: 50%;
-    left: 0;
-    right: 0;
+    left: 0; right: 0;
     z-index: 20;
     text-align: center;
     opacity: 0;
@@ -126,64 +142,77 @@
     pointer-events: none;
     padding: 0 4vw;
   }
-  #winnerOverlay.visible {
-    opacity: 1;
-    transform: translateY(-50%) scale(1);
+  #winnerOverlay.visible { opacity: 1; transform: translateY(-50%) scale(1); }
+  .winner-card {
+    display: inline-block;
+    max-width: 92vw;
+    padding: 4dvh 6vw 3.6dvh;
+    border-radius: 36px;
+    background: rgba(4,40,37,0.62);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.18);
+    box-shadow: 0 30px 80px rgba(0,0,0,0.4);
   }
-    .winner-badge {
-    font-size: 3.6dvh;
-    line-height: 1;
+  .winner-kicker {
+    font-size: 2.6dvh;
+    font-weight: 700;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: #fde68a;
+    margin-bottom: 1.6dvh;
   }
   .winner-name {
     color: #fff;
-    font-size: 11dvh;
+    font-size: 9.5dvh;
     font-weight: 800;
-    line-height: 1.1;
-    max-width: 92vw;
+    line-height: 1.08;
     margin: 0 auto;
     word-break: break-word;
-    text-shadow: 0 2px 32px rgba(255,204,0,0.45);
+    text-shadow: 0 2px 30px rgba(253,230,138,0.35);
   }
   .winner-mykad {
-    color: rgba(255,255,255,0.72);
-    font-size: 4dvh;
+    display: inline-block;
+    margin-top: 2.4dvh;
+    padding: 0.8dvh 2.4dvh;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.1);
+    color: rgba(236,253,249,0.85);
+    font-size: 3.6dvh;
     font-weight: 600;
-    letter-spacing: 0.06em;
-    margin-top: 2dvh;
+    letter-spacing: 0.08em;
+    font-variant-numeric: tabular-nums;
   }
+
+  /* ---------------- Sound button ---------------- */
   #soundUnlockBtn {
-  position: fixed;
-  top: 10px;
-  right: 10px;
-  z-index: 40;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(0,0,0,0.35);
-  color: rgba(237, 12, 12);
-  font-size: 14px;
-  line-height: 1;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: opacity 0.3s ease;
-  opacity: 0.55;
-}
-#soundUnlockBtn:hover { opacity: 1; }
-#soundUnlockBtn.hidden {
-  opacity: 0;
-  pointer-events: none;
-}
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 40;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.25);
+    background: rgba(4,40,37,0.55);
+    color: #fff;
+    font-size: 15px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.3s ease;
+    opacity: 0.6;
+  }
+  #soundUnlockBtn:hover { opacity: 1; }
+  #soundUnlockBtn.hidden { opacity: 0; pointer-events: none; }
 </style>
 </head>
 <body>
 
 <div class="stage-brand-bar">
-  <span class="eyebrow eyebrow-main">CABUTAN BERTUAH</span>
-  <span class="eyebrow eyebrow-sub">SAMBUTAN HARI KEBANGSAAN KE-69 PERINGKAT DAERAH BENTONG</span>
-  <span class="eyebrow eyebrow-sub">TAHUN 2026</span>
+  <span class="brand-pill">Cabutan Bertuah</span>
+  <span class="brand-title">Karnival Aspirasi Pahang1st</span>
+  <span class="brand-sub">Peringkat Daerah Bentong 2026</span>
 </div>
 
 <canvas id="three-canvas"></canvas>
@@ -195,8 +224,11 @@
 </div>
 
 <div id="winnerOverlay">
-  <div class="winner-name" id="winnerNameDisplay"></div>
-  <div class="winner-mykad" id="winnerMykadDisplay"></div>
+  <div class="winner-card">
+    <div class="winner-kicker">🎉 Tahniah</div>
+    <div class="winner-name" id="winnerNameDisplay"></div>
+    <div class="winner-mykad" id="winnerMykadDisplay"></div>
+  </div>
 </div>
 
 <script type="importmap">
@@ -211,14 +243,16 @@
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
   import { SVGLoader } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/SVGLoader.js'
   import * as THREE from 'three'
-
+  import { RoomEnvironment } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/environments/RoomEnvironment.js'
   /* ============================================================
      KONFIGURASI - boleh ubah suai di sini sahaja
      ============================================================ */
   const CONFIG = {
     balloonCount: 50,
-    colors: [0xffcc00, 0xcc0001, 0x1a2a8f, 0xffffff, 0x2ea16b, 0x8a2be2, 0xff7a1a],
-
+        colors: [0x14b8a6, 0xf59e0b, 0xef4444, 0xfef3c7, 0x38bdf8, 0xa78bfa, 0xfb7185],
+    labelWaveAmp: 0.05,     // tinggi ombak (0 = tiada ombak)
+    labelWaveFreq: 3.4,     // bilangan ombak merentasi nama
+    labelWaveSpeed: 2.6,    // kelajuan ombak
     shakeDurationMs: 750,       // kotak bergegar sebelum lid terbuka
     shakeStrength: 0.09,        // amplitud gegaran (unit dunia 3D)
     lidLerpSpeed: 3.2,          // kelajuan lid membuka/menutup (semakin besar = lebih pantas)
@@ -521,7 +555,11 @@ soundUnlockBtn.addEventListener('click', () => {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
   renderer.setSize(window.innerWidth, window.innerHeight)
   renderer.setClearColor(0x000000, 0) // background CSS gradient tembus terus
-
+  // Peta pantulan: beri permukaan belon kilauan lateks yang sebenar.
+  // Hanya digunakan pada belon, jadi rupa kotak hadiah tidak berubah.
+  const pmrem = new THREE.PMREMGenerator(renderer)
+  const balloonEnvMap = pmrem.fromScene(new RoomEnvironment(), 0.04).texture
+  pmrem.dispose()
   window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight
     camera.updateProjectionMatrix()
@@ -529,7 +567,7 @@ soundUnlockBtn.addEventListener('click', () => {
   })
 
   // Pencahayaan am
-  const hemi = new THREE.HemisphereLight(0xffe9a8, 0x0a0a3a, 0.95)
+  const hemi = new THREE.HemisphereLight(0xfff3d6, 0x063a36, 1.0)
   scene.add(hemi)
   const dirLight = new THREE.DirectionalLight(0xffffff, 0.65)
   dirLight.position.set(4, 10, 8)
@@ -700,81 +738,154 @@ soundUnlockBtn.addEventListener('click', () => {
     return target
   }
 
-  /* ============================================================
-     BELON (Three.js Geometry) + papan nama (CanvasTexture / Sprite)
-     ============================================================ */
+    // ---- Bentuk dikongsi (dicipta sekali sahaja) ----
+  function buildBalloonGeometry() {
+    // Profil bentuk buah pir: bulat di atas, mengecil ke arah simpulan
+    const pts = []
+    const N = 48
+    for (let i = 0; i <= N; i++) {
+      const t = i / N                         // 0 = hujung simpulan, 1 = puncak
+      const a = t * Math.PI
+      const s = Math.min(1, t / 0.5)
+      const slim = 0.55 + 0.45 * (s * s * (3 - 2 * s))   // separuh bawah lebih langsing
+      pts.push(new THREE.Vector2(Math.sin(a) * slim, (1 - Math.cos(a)) * 1.22))
+    }
+    return new THREE.LatheGeometry(pts, 48)
+  }
+  const BALLOON_GEO = buildBalloonGeometry()
+  const KNOT_CONE_GEO = new THREE.ConeGeometry(0.1, 0.2, 14)
+  const KNOT_RING_GEO = new THREE.TorusGeometry(0.075, 0.04, 10, 20)
+  const STRING_GEO = new THREE.TubeGeometry(
+    new THREE.CatmullRomCurve3([
+      new THREE.Vector3(0, -0.18, 0),
+      new THREE.Vector3(0.07, -0.6, 0.04),
+      new THREE.Vector3(-0.06, -1.05, -0.03),
+      new THREE.Vector3(0.05, -1.5, 0.03),
+      new THREE.Vector3(-0.02, -1.9, 0),
+    ]), 28, 0.012, 5, false
+  )
+  const STRING_MAT = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55 })
+
   function createBalloonMesh(colorHex) {
     const group = new THREE.Group()
-  
-    const bodyGeo = new THREE.SphereGeometry(1, 28, 22)
-    bodyGeo.scale(1, 1.22, 1)
-    const bodyMat = new THREE.MeshStandardMaterial({
-      color: colorHex, roughness: 0.28, metalness: 0.05, transparent: true, opacity: 1,
-      emissive: colorHex, emissiveIntensity: 0,
+
+    const bodyMat = new THREE.MeshPhysicalMaterial({
+      color: colorHex,
+      roughness: 0.16,
+      metalness: 0,
+      clearcoat: 1,
+      clearcoatRoughness: 0.06,
+      envMap: balloonEnvMap,
+      envMapIntensity: 1.15,
+      emissive: colorHex,
+      emissiveIntensity: 0,        // dinaikkan semasa belon pemenang mengembang
     })
-    const body = new THREE.Mesh(bodyGeo, bodyMat)
-    body.position.y = 1.22
-    group.add(body)
-  
-    const knot = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.24, 12), bodyMat)
+
+    group.add(new THREE.Mesh(BALLOON_GEO, bodyMat))
+
+    const knot = new THREE.Mesh(KNOT_CONE_GEO, bodyMat)
     knot.rotation.x = Math.PI
-    knot.position.y = -0.02
+    knot.position.y = -0.05
     group.add(knot)
-  
-    const stringGeo = new THREE.BufferGeometry().setFromPoints([
-      new THREE.Vector3(0, -0.1, 0), new THREE.Vector3(0, -1.8, 0),
-    ])
-    const stringMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.4 })
-    group.add(new THREE.Line(stringGeo, stringMat))
-  
-    group.userData.material = bodyMat
+
+    const ring = new THREE.Mesh(KNOT_RING_GEO, bodyMat)   // bibir simpulan
+    ring.rotation.x = Math.PI / 2
+    ring.position.y = -0.16
+    group.add(ring)
+
+    group.add(new THREE.Mesh(STRING_GEO, STRING_MAT))
+
+    group.userData.material = bodyMat   // masih digunakan oleh kesan glow pemenang
     return group
   }
 
-  function fitFontSize(ctx, text, maxWidth, baseSize) {
-    let size = baseSize
-    ctx.font = `bold ${size}px -apple-system, Segoe UI, Roboto, sans-serif`
-    while (ctx.measureText(text).width > maxWidth && size > 20) {
-      size -= 4
-      ctx.font = `bold ${size}px -apple-system, Segoe UI, Roboto, sans-serif`
-    }
-    return size
-  }
+    /* ============================================================
+     NAMA PADA BELON: teks dicetak pada permukaan melengkung & beralun
+     ============================================================ */
+  const LABEL_W = 1.7, LABEL_H = 0.64, LABEL_R = 1.0
 
-  function createNameSprite(text) {
+  function createNameLabel(text, colorHex) {
+    const W = 768, H = 288, PAD = 48
     const canvas = document.createElement('canvas')
-    canvas.width = 512
-    canvas.height = 170
+    canvas.width = W
+    canvas.height = H
     const ctx = canvas.getContext('2d')
+    const FONT = (s) => `800 ${s}px "Inter", -apple-system, "Segoe UI", Roboto, sans-serif`
 
-    ctx.fillStyle = 'rgba(255,255,255,0.94)'
-    const r = 30
-    ctx.beginPath()
-    ctx.moveTo(r, 6)
-    ctx.arcTo(506, 6, 506, 164, r)
-    ctx.arcTo(506, 164, 6, 164, r)
-    ctx.arcTo(6, 164, 6, 6, r)
-    ctx.arcTo(6, 6, 506, 6, r)
-    ctx.closePath()
-    ctx.fill()
+    // nama panjang dipecah kepada dua baris
+    let size = 96
+    ctx.font = FONT(size)
+    let lines = [text]
+    if (ctx.measureText(text).width > W - PAD * 2 && text.includes(' ')) {
+      const words = text.split(' ')
+      let best = null
+      for (let i = 1; i < words.length; i++) {
+        const a = words.slice(0, i).join(' ')
+        const b = words.slice(i).join(' ')
+        const w = Math.max(ctx.measureText(a).width, ctx.measureText(b).width)
+        if (!best || w < best.w) best = { w, lines: [a, b] }
+      }
+      lines = best.lines
+      size = 84
+    }
+    ctx.font = FONT(size)
+    while (Math.max(...lines.map((l) => ctx.measureText(l).width)) > W - PAD * 2 && size > 28) {
+      size -= 4
+      ctx.font = FONT(size)
+    }
 
-    ctx.fillStyle = '#010066'
+    // warna teks mengikut warna belon supaya sentiasa jelas dibaca
+    const c = new THREE.Color(colorHex)
+    const pale = (0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b) > 0.6
+    const fill = pale ? '#0b2e2b' : '#ffffff'
+    const stroke = pale ? 'rgba(255,255,255,0.9)' : 'rgba(4,40,37,0.75)'
+
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    const size = fitFontSize(ctx, text, 460, 62)
-    ctx.font = `bold ${size}px -apple-system, Segoe UI, Roboto, sans-serif`
-    ctx.fillText(text, 256, 88)
+    ctx.lineJoin = 'round'
+    lines.forEach((ln, i) => {
+      const y = H / 2 + (i - (lines.length - 1) / 2) * size * 1.12
+      ctx.lineWidth = size * 0.16
+      ctx.strokeStyle = stroke
+      ctx.strokeText(ln, W / 2, y)
+      ctx.fillStyle = fill
+      ctx.fillText(ln, W / 2, y)
+    })
 
     const texture = new THREE.CanvasTexture(canvas)
-    texture.minFilter = THREE.LinearFilter
-    const mat = new THREE.SpriteMaterial({
-      map: texture,
-      transparent: false, alphaTest: 0.5,
-      depthWrite: true, depthTest: true,
-    })
-    const sprite = new THREE.Sprite(mat)
-    sprite.scale.set(2.7, 0.9, 1)
-    return sprite
+    texture.colorSpace = THREE.SRGBColorSpace
+    texture.anisotropy = 4
+
+    const geo = new THREE.PlaneGeometry(LABEL_W, LABEL_H, 32, 8)
+    const mat = new THREE.MeshBasicMaterial({ map: texture, alphaTest: 0.35 })
+    const mesh = new THREE.Mesh(geo, mat)
+    mesh.position.set(0, 1.42, 0)
+    mesh.frustumCulled = false
+    mesh.userData.base = geo.attributes.position.array.slice()
+    return mesh
+  }
+
+  // Bengkokkan label mengikut bentuk belon, kemudian tambah ombak
+  function updateLabelWave(b, t) {
+    const pos = b.label.geometry.attributes.position
+    const base = b.label.userData.base
+    const A = CONFIG.labelWaveAmp, F = CONFIG.labelWaveFreq, S = CONFIG.labelWaveSpeed
+    for (let i = 0; i < pos.count; i++) {
+      const x = base[i * 3], y = base[i * 3 + 1]
+      const phase = x * F + t * S + b.swaySeed
+      const z = Math.sqrt(Math.max(0.04, LABEL_R * LABEL_R - x * x - y * y * 0.5)) + 0.02
+              + Math.cos(phase) * A * 0.5
+      pos.setXYZ(i, x, y + Math.sin(phase) * A, z)
+    }
+    pos.needsUpdate = true
+  }
+
+  function disposeBalloon(b) {
+    scene.remove(b.group)
+    b.group.userData.material.dispose()
+    b.label.material.map.dispose()
+    b.label.material.dispose()
+    b.label.geometry.dispose()
   }
 
   /* ============================================================
@@ -786,8 +897,8 @@ soundUnlockBtn.addEventListener('click', () => {
     const velocities = new Float32Array(count * 3)
     const colors = new Float32Array(count * 3)
     const palette = [
-      new THREE.Color(0xffcc00), new THREE.Color(0xcc0001),
-      new THREE.Color(0x8ea0ff), new THREE.Color(0xffffff),
+      new THREE.Color(0xfbbf24), new THREE.Color(0x14b8a6),
+      new THREE.Color(0xffffff), new THREE.Color(0xfb7185),
     ]
     for (let i = 0; i < count; i++) {
       positions[i * 3] = position.x
@@ -946,9 +1057,8 @@ soundUnlockBtn.addEventListener('click', () => {
       SoundManager.release()
       const color = CONFIG.colors[cryptoRandomInt(CONFIG.colors.length)]
       const group = createBalloonMesh(color)
-      const sprite = createNameSprite(entry.name)
-      sprite.position.set(0, 1.0, 1.1)
-      group.add(sprite)
+      const label = createNameLabel(entry.name, color)
+      group.add(label)
     
       const mouth = getBoxMouthPosition(new THREE.Vector3())
       group.position.copy(mouth)
@@ -967,7 +1077,7 @@ soundUnlockBtn.addEventListener('click', () => {
         : null
   
       const balloon = {
-        group, sprite, name: entry.name, isWinner: entry.isWinner,
+        group, label, name: entry.name, isWinner: entry.isWinner,
         spawnTime: now,
         finalScale,
         driftX: cryptoRandomRange(-2.4, 2.4),
@@ -1020,7 +1130,7 @@ soundUnlockBtn.addEventListener('click', () => {
     for (let i = activeBalloons.length - 1; i >= 0; i--) {
       const b = activeBalloons[i]
       const age = now - b.spawnTime
-  
+      updateLabelWave(b, now / 1000)
       if (age < CONFIG.balloonEmergeMs) {
         const t = clamp01(age / CONFIG.balloonEmergeMs)
         const eased = easeOutBack(t)
@@ -1041,6 +1151,8 @@ soundUnlockBtn.addEventListener('click', () => {
         const riseT = clamp01((b.group.position.y - 1.5) / 12)
         b.group.position.x += (b.driftX * dt * 0.18)
         b.group.position.x += Math.sin(now / 650 + b.swaySeed) * 0.012
+        b.group.rotation.z = Math.sin(now / 900 + b.swaySeed) * 0.07
+        b.group.rotation.x = Math.sin(now / 1200 + b.swaySeed * 1.7) * 0.04
   
         if (b.isWinner && !b.popped && b.preBurstStartAt !== undefined && now >= b.preBurstStartAt) {
           const growMs = dramaticMode ? DRAMATIC.preBurstGrowMs : CONFIG.winnerPreBurstGrowMs
@@ -1125,7 +1237,7 @@ soundUnlockBtn.addEventListener('click', () => {
   // jejari kolisi berkesan untuk sekeping belon (termasuk papan nama, bukan sekadar badan bulat) -
   // papan nama (sprite) lebih lebar (2.7 unit) daripada badan belon (jejari ~1), jadi jika kolisi
   // hanya kira badan, papan nama masih boleh "menembusi" belon jiran secara optik
-  const SPRITE_HALF_WIDTH = 1.35 // separuh lebar sprite (scale.x 2.7 / 2)
+  const SPRITE_HALF_WIDTH = 1.05
   
   function resolveBalloonCollisions(dt, now) {
     const pushRate = Math.min(1, dt * CONFIG.balloonSeparationStrength)
