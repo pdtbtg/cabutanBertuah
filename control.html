@@ -358,12 +358,19 @@
       <strong id="stageLinkText"></strong>
     </div>
 
-    <!-- Tempoh pendaftaran -->
-    <div class="card-block setup-card">
-      <label class="form-label" for="eligibleFrom">Peserta layak mendaftar dari</label>
-      <input type="text" class="form-control" id="eligibleFrom" placeholder="Dari (kosong = semua peserta)">
-      <div class="window-hint">Hanya peserta yang mendaftar dari masa ini sehingga sekarang akan disertakan dalam sesi ini.</div>
-    </div>
+        <!-- Tempoh pendaftaran -->
+        <div class="card-block setup-card">
+          <label class="form-label">Peserta layak mendaftar dari / hingga</label>
+          <div class="row g-2">
+            <div class="col-6">
+              <input type="text" class="form-control" id="eligibleFrom" placeholder="Dari (kosong = semua)">
+            </div>
+            <div class="col-6">
+              <input type="text" class="form-control" id="eligibleUntil" placeholder="Hingga (kosong = sekarang)">
+            </div>
+          </div>
+          <div class="window-hint">Hanya peserta yang mendaftar dalam tempoh ini akan disertakan dalam sesi ini. Jika "Hingga" dikosongkan, sehingga masa cabutan.</div>
+        </div>
 
     <!-- Simpan nama hadiah -->
     <div class="card-block prize-card">
@@ -577,7 +584,7 @@
   vvipExitBtn.addEventListener('click', exitVvipMode)
 
   // ---------------- Flatpickr: registration eligibility window ----------------
-  const fpFrom = flatpickr('#eligibleFrom', {
+   const fpFrom = flatpickr('#eligibleFrom', {
     enableTime: true,
     altInput: true,
     dateFormat: 'Y-m-d H:i',
@@ -585,6 +592,25 @@
     time_24hr: false,
     onChange: (selectedDates, dateStr, instance) => {
       instance.altInput.value = selectedDates[0] ? formatDateMY(selectedDates[0]) : ''
+      // "Hingga" cannot be earlier than "Dari"
+      fpUntil.set('minDate', selectedDates[0] || null)
+      onWindowChanged()
+    },
+    onReady: (selectedDates, dateStr, instance) => {
+      instance.altInput.value = selectedDates[0] ? formatDateMY(selectedDates[0]) : ''
+    }
+  })
+
+  const fpUntil = flatpickr('#eligibleUntil', {
+    enableTime: true,
+    altInput: true,
+    dateFormat: 'Y-m-d H:i',
+    maxDate: 'today',
+    time_24hr: false,
+    onChange: (selectedDates, dateStr, instance) => {
+      instance.altInput.value = selectedDates[0] ? formatDateMY(selectedDates[0]) : ''
+      // "Dari" cannot be later than "Hingga"
+      fpFrom.set('maxDate', selectedDates[0] || 'today')
       onWindowChanged()
     },
     onReady: (selectedDates, dateStr, instance) => {
@@ -680,7 +706,7 @@
       (pastWinners || []).map(w => w.participants?.mykad_number).filter(Boolean)
     )
     const fromVal = fpFrom.selectedDates[0]
-    const untilVal = new Date()
+    const untilVal = fpUntil.selectedDates[0] || new Date()
 
     let allParticipants
     try {
@@ -746,7 +772,7 @@
     if (currentDrawId) return currentDrawId
 
     const fromVal = fpFrom.selectedDates[0]
-    const untilVal = new Date()
+    const untilVal = fpUntil.selectedDates[0] || new Date()
     const label = fromVal
       ? `${formatDateMY(fromVal)} - ${formatDateMY(untilVal)}`
       : `Sehingga ${formatDateMY(untilVal)}`
