@@ -237,19 +237,13 @@
   #drawBtn:disabled { opacity: 0.5; animation: none; }
 
   #drawBtn .btn-hover,
-  #drawBtn .btn-drawing,
-  #drawBtn .btn-winner { display: none; }
+  #drawBtn .btn-drawing { display: none; }
   #drawBtn .btn-normal { display: inline; }
   #drawBtn:hover:not(:disabled) .btn-normal { display: none; }
   #drawBtn:hover:not(:disabled) .btn-hover { display: inline; }
   #drawBtn.is-drawing .btn-normal,
-  #drawBtn.is-drawing .btn-hover,
-  #drawBtn.is-drawing .btn-winner { display: none; }
+  #drawBtn.is-drawing .btn-hover { display: none; }
   #drawBtn.is-drawing .btn-drawing { display: inline; }
-  #drawBtn.is-winner .btn-normal,
-  #drawBtn.is-winner .btn-hover,
-  #drawBtn.is-winner .btn-drawing { display: none; }
-  #drawBtn.is-winner .btn-winner { display: inline; }
 
   @keyframes btnBreathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.012); } }
   @media (prefers-reduced-motion: reduce) {
@@ -404,7 +398,6 @@
             <span class="btn-normal">🎁 SIAPA BERTUAH?</span>
             <span class="btn-hover">TEKAN UNTUK MULA CABUTAN</span>
             <span class="btn-drawing">⏳ SEDANG MEMBUAT CABUTAN...</span>
-            <span class="btn-winner">🎉 TAHNIAH! ANDA BERTUAH!</span>
           </button>
         </div>
       </div>
@@ -820,7 +813,6 @@
 
     isSpinning = true
     drawBtn.disabled = true
-    drawBtn.classList.remove('is-winner')
     drawBtn.classList.add('is-drawing')
     cabutWrap.classList.add('is-drawing')
     lastWinnerBox.style.display = 'none'
@@ -891,7 +883,6 @@
     lastWinnerMykad.textContent = winner.mykad_number
     lastWinnerPrize.textContent = prizeName
     lastWinnerBox.style.display = 'block'
-    drawBtn.classList.add('is-winner')
 
     await loadEligible()
     await loadWinnersList()
