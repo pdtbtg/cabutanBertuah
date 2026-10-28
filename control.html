@@ -494,19 +494,10 @@
     return `${day} ${month} ${year} ${hours}:${minutes} ${ampm}`
   }
 
-  // ---------------- Senarai hadiah (disimpan dalam pelayar ini) ----------------
-  const PRIZES_KEY = 'cabutan_prizes'
-  const PRIZE_SELECTED_KEY = 'cabutan_prize_selected'
+    // ---------------- Senarai hadiah (disimpan dalam Supabase) ----------------
+  const PRIZE_SELECTED_KEY = 'cabutan_prize_selected'   // pilihan semasa kekal per-peranti
+  let prizesCache = []
 
-  function loadPrizes() {
-    try {
-      const arr = JSON.parse(localStorage.getItem(PRIZES_KEY) || '[]')
-      return Array.isArray(arr) ? arr.filter(x => typeof x === 'string' && x.trim()) : []
-    } catch (e) { return [] }
-  }
-  function savePrizes(list) {
-    try { localStorage.setItem(PRIZES_KEY, JSON.stringify(list)) } catch (e) { console.error(e) }
-  }
   function saveSelectedPrize(name) {
     try { localStorage.setItem(PRIZE_SELECTED_KEY, name || '') } catch (e) { console.error(e) }
   }
@@ -515,7 +506,7 @@
   }
 
   function renderPrizeSelect(selected) {
-    const list = loadPrizes()
+    const list = prizesCache
     prizeSelect.innerHTML =
       '<option value="">Tiada hadiah</option>' +
       list.map(p => `<option value="${esc(p)}">${esc(p)}</option>`).join('')
@@ -523,29 +514,42 @@
     prizeDeleteBtn.disabled = prizeSelect.value === ''
     saveSelectedPrize(prizeSelect.value)
   }
-  renderPrizeSelect(loadSelectedPrize())
+
+  async function fetchPrizes(selectedOverride) {
+    const { data, error } = await supabase
+      .from('prizes')
+      .select('name')
+      .order('id', { ascending: true })
+    if (error) { console.error(error); toast('error', 'Gagal memuatkan senarai hadiah.'); return }
+    prizesCache = data.map(r => r.name)
+    renderPrizeSelect(selectedOverride ?? (prizeSelect.value || loadSelectedPrize()))
+  }
 
   function toast(icon, title) {
     Swal.fire({ toast: true, position: 'top', icon, title, showConfirmButton: false, timer: 1800 })
   }
 
-  prizeForm.addEventListener('submit', (e) => {
+  prizeForm.addEventListener('submit', async (e) => {
     e.preventDefault()
     const name = prizeNameInput.value.trim()
     if (!name) { toast('warning', 'Sila isi nama hadiah.'); return }
 
-    const list = loadPrizes()
-    const existing = list.find(p => p.toLowerCase() === name.toLowerCase())
+    const existing = prizesCache.find(p => p.toLowerCase() === name.toLowerCase())
     if (existing) {
       renderPrizeSelect(existing)
       prizeNameInput.value = ''
       toast('info', 'Hadiah ini sudah ada dan telah dipilih.')
       return
     }
-    list.push(name)
-    savePrizes(list)
-    renderPrizeSelect(name)
+
+    const { error } = await supabase.from('prizes').insert([{ name }])
+    if (error) {
+      console.error(error)
+      toast('error', 'Gagal menyimpan hadiah.')
+      return
+    }
     prizeNameInput.value = ''
+    await fetchPrizes(name)
     toast('success', 'Hadiah disimpan.')
   })
 
@@ -567,8 +571,9 @@
       confirmButtonColor: '#dc2626'
     })
     if (!res.isConfirmed) return
-    savePrizes(loadPrizes().filter(p => p !== name))
-    renderPrizeSelect('')
+    const { error } = await supabase.from('prizes').delete().eq('name', name)
+    if (error) { console.error(error); toast('error', 'Gagal memadam hadiah.'); return }
+    await fetchPrizes('')
   })
 
   // ---------------- Mod Simple: hanya pilihan hadiah + butang cabutan ----------------
@@ -637,7 +642,12 @@
         loadEligible()   // safe to send update-pool now
       }
     })
+    fetchPrizes()
 
+    // optional: live-sync when another device adds/removes a prize
+    supabase.channel('prizes-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'prizes' }, () => fetchPrizes())
+      .subscribe()
     loadWinnersList()
   }
   function showLogin() {
