@@ -95,6 +95,14 @@
   }
   .card-body { padding: 4dvh clamp(20px, 6.5vw, 34px) 3.6dvh; }
 
+  .card-header-img {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 23 / 10;   /* keeps the banner shape even before it loads */
+    object-fit: cover;
+  }
+
   .brand-subtitle { color: var(--ink-soft); font-size: 0.92rem; margin-top: 0.35rem; }
 
   /* ---------------- Fields ---------------- */
@@ -338,6 +346,9 @@
 
     <div class="auth-shell">
       <div class="auth-card">
+        <div class="auth-card">
+          <img src="assets/background.webp" alt="Karnival Aspirasi Pahang Peringkat Daerah Bentong 2026" class="card-header-img">
+        <div class="card-body">
         <div class="card-body">
 
           <!-- ============ FORM VIEW ============ -->
