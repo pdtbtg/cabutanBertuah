@@ -35,17 +35,6 @@
       radial-gradient(900px 600px at 12% 0%, rgba(20, 105, 184, 0.3), transparent 60%),
       linear-gradient(160deg, #05122e 0%, #0b334f 50%, #0f1b76 100%);
   }
-  body::after {
-    content: "";
-    position: fixed;
-    inset: 0;
-    z-index: 0;
-    pointer-events: none;
-    background: url('assets/background.webp') center 40% / auto 50% no-repeat;
-    opacity: 1.00;
-    mix-blend-mode: soft-light;
-  }
-
   /* ---------------- Brand bar ---------------- */
   .stage-brand-bar {
     position: fixed;
@@ -59,6 +48,15 @@
     text-align: center;
     background: linear-gradient(180deg, rgba(3,32,29,0.8) 0%, rgba(3,32,29,0) 100%);
   }
+
+  .stage-brand-bar .brand-img {
+    display: block;
+    height: 60px;        /* adjust to fit your bar */
+    width: auto;
+    max-width: 100%;
+    object-fit: contain;
+  }
+    
   .brand-pill {
     font-size: 2.1dvh;
     font-weight: 700;
@@ -211,8 +209,9 @@
 
 <div class="stage-brand-bar">
   <span class="brand-pill">Cabutan Bertuah</span>
-  <span class="brand-title">Karnival Aspirasi Pahang1st</span>
-  <span class="brand-sub">Peringkat Daerah Bentong 2026</span>
+  <img src="assets/background.webp"
+       alt="Karnival Aspirasi Pahang1st Peringkat Daerah Bentong 2026"
+       class="brand-img">
 </div>
 
 <canvas id="three-canvas"></canvas>
@@ -749,6 +748,7 @@ soundUnlockBtn.addEventListener('click', () => {
   }
   positionPrizeOverlay()
   window.addEventListener('resize', positionPrizeOverlay)
+  document.querySelector('.brand-img').addEventListener('load', positionPrizeOverlay)
 
   /* ============================================================
      SUPABASE REALTIME (kekal sama seperti sebelum ini)
