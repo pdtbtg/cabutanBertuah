@@ -418,7 +418,7 @@
             <tr><th>#</th><th>Nama</th><th>No. MyKad</th><th>Hadiah</th><th>Masa</th></tr>
           </thead>
           <tbody id="winnersBody">
-            <tr><td colspan="5" class="text-center text-muted py-3">Tiada pemenang lagi.</td></tr>
+            <tr><td colspan="6" class="text-center text-muted py-3">Tiada pemenang lagi.</td></tr>
           </tbody>
         </table>
       </div>
@@ -746,12 +746,12 @@
   async function loadWinnersList() {
     const { data, error } = await supabase
       .from('winners')
-      .select('id, prize_name, draw_at, participants(full_name, mykad_number)')
+      .select('id, prize_name, draw_at, participants(full_name, mykad_number, phone_number)')
       .order('draw_at', { ascending: false })
       .limit(50)
 
     if (error || !data || data.length === 0) {
-      winnersBody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-3">Tiada pemenang lagi.</td></tr>`
+      winnersBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">Tiada pemenang lagi.</td></tr>`
       return
     }
 
@@ -759,7 +759,7 @@
       <tr>
         <td>${i + 1}</td>
         <td>${w.participants ? esc(w.participants.full_name) : '-'}</td>
-        <td class="mykad-cell">${w.participants ? esc(w.participants.mykad_number) : '-'}</td>
+        <td class="mykad-cell">${w.participants ? esc(w.participants.phone_number || '-') : '-'}</td>
         <td>${esc(w.prize_name) || '-'}</td>
         <td>${formatDateMY(w.draw_at)}</td>
       </tr>
