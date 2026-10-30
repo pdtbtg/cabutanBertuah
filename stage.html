@@ -217,8 +217,6 @@
 </div>
 <img src="assets/background.webp" alt="Karnival Aspirasi Pahang1st Peringkat Daerah Bentong 2026" class="stage-hero">
 <canvas id="three-canvas"></canvas>
-
-<canvas id="three-canvas"></canvas>
 <div id="vignette"></div>
 <button id="soundUnlockBtn" title="Aktifkan bunyi" aria-label="Aktifkan bunyi">🔇</button>
 <div id="prizeOverlay">
@@ -752,7 +750,6 @@ soundUnlockBtn.addEventListener('click', () => {
   }
   positionPrizeOverlay()
   window.addEventListener('resize', positionPrizeOverlay)
-  document.querySelector('.brand-img').addEventListener('load', positionPrizeOverlay)
 
   /* ============================================================
      SUPABASE REALTIME (kekal sama seperti sebelum ini)
