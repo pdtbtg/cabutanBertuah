@@ -365,6 +365,14 @@
                 </div>
                 <div class="field-error">No. MyKad mesti 12 digit angka.</div>
               </div>
+              <div class="field-group" id="phoneGroup">
+                <label for="phone_number">No. Telefon</label>
+                <div class="input-icon-wrap">
+                  <i class="bi bi-telephone-fill icon-slot"></i>
+                  <input type="tel" inputmode="numeric" autocomplete="off" class="form-control" id="phone_number" placeholder="Contoh: 0123456789" maxlength="11" required>
+                </div>
+                <div class="field-error">No. telefon tidak sah (Contoh: 0123456789).</div>
+              </div>
               <div class="info-box">
                 <strong>Maklumat:</strong> Anda boleh mendaftar lebih daripada sekali, tetapi
                 <strong>hanya satu nama bagi setiap No. MyKad</strong> akan dimasukkan dalam setiap sesi cabutan.
@@ -396,6 +404,7 @@
             <p>Anda berjaya mendaftar untuk cabutan bertuah.</p>
             <div class="reg-count-box" id="regCountBox"></div>
             <p class="reg-note" id="regNote"></p>
+            <div class="success-badge">
               <i class="bi bi-megaphone-fill"></i>
               Nantikan detik pengumuman pemenang di pentas utama!
             </div>
@@ -446,6 +455,8 @@
   const mykadInput = document.getElementById('mykad_number')
   const nameGroup = document.getElementById('nameGroup')
   const mykadGroup = document.getElementById('mykadGroup')
+  const phoneInput = document.getElementById('phone_number')
+  const phoneGroup = document.getElementById('phoneGroup')
   const agreeTerms = document.getElementById('agreeTerms')
   const termsError = document.getElementById('termsError')
 
@@ -511,6 +522,15 @@
     mykadInput.value = text.replace(/\D/g, '').slice(0, 12)
   })
 
+  phoneInput.addEventListener('input', () => {
+    phoneInput.value = phoneInput.value.replace(/\D/g, '').slice(0, 11)
+    phoneGroup.classList.remove('has-error')
+  })
+  
+  function isValidPhone(value) {
+    return /^01\d{8,9}$/.test(value)
+  }
+
   agreeTerms.addEventListener('change', () => {
     if (agreeTerms.checked) termsError.style.display = 'none'
   })
@@ -531,10 +551,11 @@
 
     const full_name = fullNameInput.value.trim()
     const mykad_number = mykadInput.value.trim()
-
+    const phone_number = phoneInput.value.trim()
     // reset previous inline errors
     nameGroup.classList.remove('has-error')
     mykadGroup.classList.remove('has-error')
+    phoneGroup.classList.remove('has-error')
     termsError.style.display = 'none'
 
     let hasError = false
@@ -546,6 +567,11 @@
 
     if (!isValidMyKad(mykad_number)) {
       mykadGroup.classList.add('has-error')
+      hasError = true
+    }
+
+    if (!isValidPhone(phone_number)) {
+      phoneGroup.classList.add('has-error')
       hasError = true
     }
 
@@ -565,7 +591,8 @@
       .rpc('register_participant', {
         p_full_name: full_name,
         p_mykad_number: mykad_number,
-        p_urus_setia: urusSetiaInput.value === 'true'
+        p_urus_setia: urusSetiaInput.value === 'true',
+        p_phone_number: phone_number
       })
 
     setLoading(false)
@@ -575,6 +602,7 @@
       if (error.message?.includes('MYKAD_DUPLICATE')) msg = 'No. MyKad ini sudah didaftarkan sebelum ini.'
       else if (error.message?.includes('MYKAD_INVALID')) msg = 'No. MyKad mesti 12 digit angka.'
       else if (error.message?.includes('NAME_INVALID')) msg = 'Nama tidak sah. Gunakan 3-100 aksara tanpa simbol < > & ".'
+      else if (error.message?.includes('PHONE_INVALID')) msg = 'No. telefon tidak sah.'
       showError('Pendaftaran Tidak Berjaya', msg)
       console.error(error)
       return
@@ -609,6 +637,7 @@
     form.reset()
     nameGroup.classList.remove('has-error')
     mykadGroup.classList.remove('has-error')
+    phoneGroup.classList.remove('has-error')
     termsError.style.display = 'none'
     successView.style.display = 'none'
     formView.style.display = 'block'
