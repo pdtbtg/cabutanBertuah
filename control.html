@@ -415,7 +415,7 @@
       <div class="table-responsive">
         <table class="table table-sm align-middle">
           <thead>
-            <tr><th>#</th><th>Nama</th><th>No. MyKad</th><th>Hadiah</th><th>Masa</th></tr>
+            <tr><th>#</th><th>Nama</th><th>No. MyKad</th><th>No. Telefon</th><th>Hadiah</th><th>Masa</th></tr>
           </thead>
           <tbody id="winnersBody">
             <tr><td colspan="6" class="text-center text-muted py-3">Tiada pemenang lagi.</td></tr>
@@ -435,6 +435,14 @@
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
   const stageChannel = supabase.channel('cabutan-stage')
+  let pendingReveal = null   // winner saved to DB, waiting for the stage to show it
+  let stageShown = false     // stage signal arrived early
+  let revealTimeout = null
+  
+  stageChannel.on('broadcast', { event: 'winner-shown' }, () => {
+    stageShown = true
+    finishDraw()
+  })
 
   const loginScreen = document.getElementById('loginScreen')
   const controlScreen = document.getElementById('controlScreen')
@@ -734,7 +742,7 @@
     eligibleParticipants = Array.from(byMykad.values())
 
     eligibleBadge.textContent = `${eligibleParticipants.length} peserta layak (${(allParticipants || []).length} pendaftaran dalam tempoh ini)`
-    drawBtn.disabled = eligibleParticipants.length === 0
+    drawBtn.disabled = isSpinning || eligibleParticipants.length === 0
 
     stageChannel.send({
       type: 'broadcast',
@@ -759,6 +767,7 @@
       <tr>
         <td>${i + 1}</td>
         <td>${w.participants ? esc(w.participants.full_name) : '-'}</td>
+        <td class="mykad-cell">${w.participants ? esc(w.participants.mykad_number) : '-'}</td>
         <td class="mykad-cell">${w.participants ? esc(w.participants.phone_number || '-') : '-'}</td>
         <td>${esc(w.prize_name) || '-'}</td>
         <td>${formatDateMY(w.draw_at)}</td>
@@ -797,6 +806,26 @@
     cabutWrap.classList.remove('is-drawing')
   }
 
+  async function finishDraw() {
+    if (!pendingReveal) return          // not saved yet; the click handler will call this
+    clearTimeout(revealTimeout)
+    const { winner, prizeName } = pendingReveal
+    pendingReveal = null
+    stageShown = false
+  
+    isSpinning = false
+    drawBtn.classList.remove('is-drawing')
+    cabutWrap.classList.remove('is-drawing')
+  
+    lastWinnerName.textContent = winner.full_name
+    lastWinnerMykad.textContent = winner.mykad_number
+    lastWinnerPrize.textContent = prizeName
+    lastWinnerBox.style.display = 'block'
+  
+    await loadEligible()      // also re-enables the button if people are still eligible
+    await loadWinnersList()
+  }
+
   drawBtn.addEventListener('click', async () => {
     if (isSpinning) return
     if (!stageChannelReady) {
@@ -812,6 +841,7 @@
     const prizeName = prizeSelect.value
 
     isSpinning = true
+    stageShown = false
     drawBtn.disabled = true
     drawBtn.classList.add('is-drawing')
     cabutWrap.classList.add('is-drawing')
@@ -873,19 +903,17 @@
 
     stopSpinFX()
 
-    if (error) {
+        if (error) {
+      stopSpinFX()
       Swal.fire({ icon: 'error', title: 'Ralat', text: 'Ralat menyimpan pemenang: ' + error.message })
       await loadEligible()
       return
     }
 
-    lastWinnerName.textContent = winner.full_name
-    lastWinnerMykad.textContent = winner.mykad_number
-    lastWinnerPrize.textContent = prizeName
-    lastWinnerBox.style.display = 'block'
-
-    await loadEligible()
-    await loadWinnersList()
+    // Winner is saved. Keep the button disabled until the stage shows the winner.
+    pendingReveal = { winner, prizeName }
+    if (stageShown) { finishDraw(); return }
+    revealTimeout = setTimeout(finishDraw, 90000)   // safety net if the signal is lost
   })
 </script>
 
