@@ -1417,6 +1417,7 @@ soundUnlockBtn.addEventListener('click', () => {
     spotLight.position.set(pos.x, pos.y + 8, pos.z + 6)
     spotPulseUntil = performance.now() + 900
     showWinnerOverlay(balloon.name, currentWinnerMykad)
+    stageChannel.send({ type: 'broadcast', event: 'winner-shown', payload: {} })
     winnerRevealed = true
     burstRemainingBalloons()
   }
