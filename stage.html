@@ -32,7 +32,7 @@
     width: auto;
     max-width: 90vw;
     object-fit: contain;
-    z-index: 1;
+    z-index: 2;
     pointer-events: none;
     /* no opacity, no mix-blend-mode, no filter */
   }
@@ -41,25 +41,25 @@
     content: "";
     position: fixed;
     inset: 0;
-    z-index: 0;
+    z-index: 1;
     pointer-events: none;
     background:
       radial-gradient(1200px 700px at 50% 92%, rgba(245,158,11,0.24), transparent 60%),
-      radial-gradient(900px 600px at 12% 0%, rgba(20, 105, 184, 0.3), transparent 60%),
-      linear-gradient(160deg, #05122e 0%, #0b334f 50%, #0f1b76 100%);
+      radial-gradient(900px 600px at 12% 0%, rgba(20,105,184,0.3), transparent 60%),
+      linear-gradient(160deg, rgba(5,18,46,0.75) 0%, rgba(11,51,79,0.65) 50%, rgba(15,27,118,0.75) 100%);
   }
 
   body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background-image: url("assets/dataranBentong.webp");
-  background-size: cover;       /* fill without stretching */
-  background-position: center;  /* crop evenly from the center */
-  background-repeat: no-repeat;
-}
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image: url("assets/dataranBentong.webp");
+    background-size: cover;       /* fill without stretching */
+    background-position: center;  /* crop evenly from the center */
+    background-repeat: no-repeat;
+  }
   
   /* ---------------- Brand bar ---------------- */
   .stage-brand-bar {
