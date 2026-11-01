@@ -284,7 +284,6 @@
             <th>#</th>
             <th>Nama Penuh</th>
             <th>No. MyKad</th>
-            <th>Penyertaan</th>
             <th>Tarikh Daftar</th>
             <th>Daftar</th>
           </tr>
@@ -342,7 +341,7 @@
       data: [],
       pageLength: 25,
       lengthMenu: [10, 25, 50, 100],
-      order: [[5, 'desc']],
+      order: [[4, 'desc']],
       autoWidth: false,
       columns: [
         {
@@ -352,14 +351,6 @@
         { data: null, orderable: false, searchable: false, className: 'num-col', defaultContent: '' },
         { data: 'full_name', render: (d, type) => type === 'display' ? esc(d) : (d || '') },
         { data: 'mykad_number', className: 'mykad-cell' },
-        {
-          data: 'urus_setia',
-          render: (d, type) => {
-            if (type === 'display') return d ? '<span class="badge-soft urus">Urus Setia</span>' : '<span class="badge-soft awam">Awam</span>'
-            if (type === 'filter') return d ? 'Urus Setia' : 'Awam'
-            return d ? 1 : 0
-          }
-        },
         {
           data: 'reg_at', className: 'date-cell',
           render: (d, type) => (type === 'sort' || type === 'type') ? (d ? new Date(d).getTime() : 0) : formatDate(d)
