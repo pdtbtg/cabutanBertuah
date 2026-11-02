@@ -319,6 +319,7 @@ const SoundManager = (() => {
   let shakeNode = null
   let popBuffer = null
   let revealBuffer = null
+  let idleBuffer = null
 
   /* ===== TETAPAN BUNYI - ubah di sini ===== */
   const SOUND_CFG = {
@@ -354,19 +355,22 @@ const SoundManager = (() => {
     return await c.decodeAudioData(arr)
   }
   ;(async () => {
-    try {
-      const [pop, reveal] = await Promise.all([
-        loadBuffer('assets/balloon-pop.mp3'),
-        loadBuffer('assets/winner-fanfare.mp3'),
-      ])
-      popBuffer = pop
-      revealBuffer = reveal
-      popOnset = findOnsetOffset(pop)
-      revealOnset = findOnsetOffset(reveal)
-    } catch (e) {
-      console.error('[SoundManager] gagal memuatkan fail audio:', e)
-    }
-  })()
+  try {
+    const [pop, reveal, idle] = await Promise.all([
+      loadBuffer('assets/balloon-pop.mp3'),
+      loadBuffer('assets/winner-fanfare.mp3'),
+      loadBuffer('assets/idle-loop.mp3'),
+    ])
+    popBuffer = pop
+    revealBuffer = reveal
+    idleBuffer = idle
+    popOnset = findOnsetOffset(pop)
+    revealOnset = findOnsetOffset(reveal)
+    if (unlocked && !ambient) ambientStart()   // in case the user clicked before loading finished
+  } catch (e) {
+    console.error('[SoundManager] gagal memuatkan fail audio:', e)
+  }
+})()
 
   // Bas utama + had kuat bunyi, supaya banyak bunyi bertindih tidak pecah
   function dest() {
@@ -478,56 +482,20 @@ const SoundManager = (() => {
 
   /* ---------- 1) IDLE: pad latar + kerlipan loceng ---------- */
   function ambientStart() {
-    if (!unlocked || !SOUND_CFG.ambient || ambient) return
+    if (!unlocked || !SOUND_CFG.ambient || ambient || !idleBuffer) return
     const c = getCtx(), t = c.currentTime
     const gain = c.createGain()
     gain.gain.setValueAtTime(0.0001, t)
-    gain.gain.linearRampToValueAtTime(SOUND_CFG.ambientVolume, t + 3)
-
-    const filter = c.createBiquadFilter()
-    filter.type = 'lowpass'
-    filter.frequency.value = 900
-    filter.Q.value = 0.7
-
-    const lfo = c.createOscillator()
-    lfo.frequency.value = 0.07
-    const lfoGain = c.createGain()
-    lfoGain.gain.value = 350
-    lfo.connect(lfoGain).connect(filter.frequency)
-    lfo.start(t)
-
-    const oscs = []
-    ;[130.81, 196.0, 293.66, 329.63].forEach((f, i) => {
-      ;[-6, 6].forEach((detune) => {
-        const o = c.createOscillator()
-        o.type = 'triangle'
-        o.frequency.value = f
-        o.detune.value = detune
-        const g = c.createGain()
-        g.gain.value = 0.05 / (1 + i * 0.3)
-        o.connect(g).connect(filter)
-        o.start(t)
-        oscs.push(o)
-      })
-    })
-    filter.connect(gain).connect(dest())
-    ambient = { gain, oscs, lfo }
-    scheduleTwinkle()
+    gain.gain.linearRampToValueAtTime(SOUND_CFG.ambientVolume, t + 2)
+    const src = c.createBufferSource()
+    src.buffer = idleBuffer
+    src.loop = true
+    src.connect(gain).connect(dest())
+    src.start(t)
+    ambient = { gain, src }
   }
-
-  function scheduleTwinkle() {
-    clearTimeout(twinkleTimer)
-    if (!ambient) return
-    twinkleTimer = setTimeout(() => {
-      if (!ambient) return
-      chime(TWINKLE_NOTES[Math.floor(Math.random() * TWINKLE_NOTES.length)],
-        { volume: SOUND_CFG.twinkleVolume, pan: Math.random() * 1.6 - 0.8, decay: 1.8 })
-      scheduleTwinkle()
-    }, 1800 + Math.random() * 3200)
-  }
-
+  
   function ambientStop(fade = 0.8) {
-    clearTimeout(twinkleTimer)
     if (!ambient) return
     const c = getCtx(), a = ambient
     ambient = null
@@ -535,10 +503,7 @@ const SoundManager = (() => {
     a.gain.gain.cancelScheduledValues(t)
     a.gain.gain.setValueAtTime(a.gain.gain.value, t)
     a.gain.gain.linearRampToValueAtTime(0.0001, t + fade)
-    setTimeout(() => {
-      a.oscs.forEach((o) => { try { o.stop() } catch (e) {} })
-      try { a.lfo.stop() } catch (e) {}
-    }, fade * 1000 + 100)
+    setTimeout(() => { try { a.src.stop() } catch (e) {} }, fade * 1000 + 100)
   }
 
   /* ---------- 2) KOTAK BERGEGAR & TERBUKA ---------- */
