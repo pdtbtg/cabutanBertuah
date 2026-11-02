@@ -569,22 +569,28 @@ const SoundManager = (() => {
   function releaseSound() {
     if (!unlocked) return
     const v = SOUND_CFG.releaseVolume
-    const pan = Math.random() * 0.6 - 0.3
+    const pan = Math.random() * 0.8 - 0.4
   
-    // tension notes: dark A minor with a tritone (Eb) for unease
-    const TENSION = [110.0, 130.81, 146.83, 155.56, 164.81, 196.0, 220.0]
-    const note = TENSION[Math.min(TENSION.length - 1, Math.floor(releaseStep / 7))]
+    // high, tense notes (minor with a flat 5th for edge), rising as balloons come out
+    const TENSION = [659.25, 783.99, 880.0, 932.33, 987.77, 1174.7, 1318.5, 1568.0, 1760.0]
+    const idx = Math.min(TENSION.length - 1, Math.floor(releaseStep / 5))
+    const note = TENSION[idx]
     releaseStep++
   
-    // soft airy whoosh, much quieter than before
-    noiseHit({ dur: 0.35, type: 'bandpass', freq: 300, sweepTo: 1100, q: 0.6, volume: 0.035 * v, pan })
+    // sharp "tick" at the start for impact
+    noiseHit({ dur: 0.04, type: 'highpass', freq: 5000, volume: 0.1 * v, pan })
   
-    // low heartbeat thump
-    toneHit({ freq: 75, toFreq: 42, dur: 0.22, type: 'sine', volume: 0.14 * v })
+    // bright air burst, quick and rising
+    noiseHit({ dur: 0.18, type: 'bandpass', freq: 1200, sweepTo: 5000, q: 1.2, volume: 0.07 * v, pan })
   
-    // dark tone with a slow attack, fading out
-    toneHit({ freq: note, dur: 0.7, type: 'sine', volume: 0.05 * v, attack: 0.08, pan })
-    toneHit({ freq: note * 2.005, dur: 0.5, type: 'sine', volume: 0.018 * v, attack: 0.1, pan })
+    // punchy low hit for energy
+    toneHit({ freq: 120, toFreq: 55, dur: 0.12, type: 'sine', volume: 0.22 * v })
+  
+    // main high note: instant attack, slight upward bend
+    toneHit({ freq: note, toFreq: note * 1.03, dur: 0.35, type: 'triangle', volume: 0.16 * v, attack: 0.003, pan })
+  
+    // shimmer one octave above
+    toneHit({ freq: note * 2, dur: 0.22, type: 'sine', volume: 0.07 * v, attack: 0.003, pan })
   }
 
   /* ---------- 4) BELON PECAH ---------- */
