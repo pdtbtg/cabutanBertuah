@@ -891,20 +891,19 @@
       return
     }
 
-    const { error } = await supabase
-      .from('winners')
-      .insert([{
-        draw_id: drawId,
-        participant_id: winner.id,
-        prize_name: prizeName,
-        operator_id: currentUser?.id || null,
-        operator_email: currentUser?.email || null
-      }])
-
-    stopSpinFX()
-
-        if (error) {
-      stopSpinFX()
+      const { error } = await supabase
+        .from('winners')
+        .insert([{
+          draw_id: drawId,
+          participant_id: winner.id,
+          prize_name: prizeName,
+          operator_id: currentUser?.id || null,
+          operator_email: currentUser?.email || null
+        }])
+  
+      if (error) {
+        stopSpinFX()
+          
       Swal.fire({ icon: 'error', title: 'Ralat', text: 'Ralat menyimpan pemenang: ' + error.message })
       await loadEligible()
       return
