@@ -328,7 +328,7 @@ const SoundManager = (() => {
     ambientVolume: 0.5,
     twinkleVolume: 0.035,
     drumRoll: true,         // dram bergolek (perlu langkah 2 pilihan)
-    applause: true,         // tepukan selepas nama pemenang dipaparkan
+    applause: false,         // tepukan selepas nama pemenang dipaparkan
     applauseVolume: 0.4,
     releaseVolume: 1,       // kuat bunyi setiap belon keluar dari kotak
   }
@@ -690,7 +690,7 @@ const SoundManager = (() => {
     drumRoll: drumRollStart,
     pop: () => {
       drumRollStop()
-      boom()
+      // boom()
       playBuffer(popBuffer, { volume: 0.9, offset: popOnset })
       // burstCascade(12)   // removed: sounded like firecrackers
     },
