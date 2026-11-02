@@ -336,6 +336,7 @@ const SoundManager = (() => {
   const TWINKLE_NOTES = [1046.5, 1174.7, 1318.5, 1568.0, 1760.0]
   const PLUCK_NOTES = [523.25, 587.33, 659.25, 783.99, 880.0, 1046.5, 1174.7, 1318.5]
   let pluckIdx = 2
+  let releaseStep = 0
   let master = null
   let noiseCache = null
   let ambient = null
@@ -509,6 +510,7 @@ const SoundManager = (() => {
   /* ---------- 2) KOTAK BERGEGAR & TERBUKA ---------- */
   function shakeStart(ms = 750) {
     if (!unlocked || shakeNode) return
+    releaseStep = 0
     ambientStop(0.7)
     clearTimeout(resumeTimer)
     const c = getCtx(), t = c.currentTime, dur = ms / 1000
@@ -566,15 +568,23 @@ const SoundManager = (() => {
   /* ---------- 3) BELON KELUAR DARI KOTAK ---------- */
   function releaseSound() {
     if (!unlocked) return
-    const pan = Math.random() * 1.2 - 0.6
     const v = SOUND_CFG.releaseVolume
-    noiseHit({ dur: 0.22, type: 'bandpass', freq: 700, sweepTo: 2600, q: 0.9, volume: 0.07 * v, pan })
-    toneHit({ freq: 230, toFreq: 540, dur: 0.1, type: 'triangle', volume: 0.1 * v, pan })
-    pluckIdx = Math.max(0, Math.min(PLUCK_NOTES.length - 1,
-      pluckIdx + [-2, -1, 1, 1, 2][Math.floor(Math.random() * 5)]))
-    const f = PLUCK_NOTES[pluckIdx]
-    toneHit({ when: 0.03, freq: f, dur: 0.38, volume: 0.09 * v, pan })
-    toneHit({ when: 0.03, freq: f * 4, dur: 0.08, volume: 0.025 * v, pan })
+    const pan = Math.random() * 0.6 - 0.3
+  
+    // tension notes: dark A minor with a tritone (Eb) for unease
+    const TENSION = [110.0, 130.81, 146.83, 155.56, 164.81, 196.0, 220.0]
+    const note = TENSION[Math.min(TENSION.length - 1, Math.floor(releaseStep / 7))]
+    releaseStep++
+  
+    // soft airy whoosh, much quieter than before
+    noiseHit({ dur: 0.35, type: 'bandpass', freq: 300, sweepTo: 1100, q: 0.6, volume: 0.035 * v, pan })
+  
+    // low heartbeat thump
+    toneHit({ freq: 75, toFreq: 42, dur: 0.22, type: 'sine', volume: 0.14 * v })
+  
+    // dark tone with a slow attack, fading out
+    toneHit({ freq: note, dur: 0.7, type: 'sine', volume: 0.05 * v, attack: 0.08, pan })
+    toneHit({ freq: note * 2.005, dur: 0.5, type: 'sine', volume: 0.018 * v, attack: 0.1, pan })
   }
 
   /* ---------- 4) BELON PECAH ---------- */
