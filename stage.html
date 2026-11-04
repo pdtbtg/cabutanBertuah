@@ -200,6 +200,22 @@
     font-variant-numeric: tabular-nums;
   }
 
+  .winner-phone {
+    display: block;
+    width: fit-content;
+    margin: 1.4dvh auto 0;
+    padding: 0.8dvh 2.4dvh;
+    border-radius: 999px;
+    background: rgba(253,230,138,0.14);
+    border: 1px solid rgba(253,230,138,0.35);
+    color: #fde68a;
+    font-size: 3.6dvh;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    font-variant-numeric: tabular-nums;
+  }
+  .winner-phone:empty { display: none; }
+  
   /* ---------------- Sound button ---------------- */
   #soundUnlockBtn {
     position: fixed;
@@ -242,6 +258,7 @@
     <div class="winner-kicker">🎉 Tahniah</div>
     <div class="winner-name" id="winnerNameDisplay"></div>
     <div class="winner-mykad" id="winnerMykadDisplay"></div>
+    <div class="winner-phone" id="winnerPhoneDisplay"></div>
   </div>
 </div>
 
@@ -734,6 +751,7 @@ soundUnlockBtn.addEventListener('click', () => {
     winnerOverlay: document.getElementById('winnerOverlay'),
     winnerName: document.getElementById('winnerNameDisplay'),
     winnerMykad: document.getElementById('winnerMykadDisplay'),
+    winnerPhone: document.getElementById('winnerPhoneDisplay'),
     vignette: document.getElementById('vignette'),
     canvas: document.getElementById('three-canvas'),
   }
@@ -1267,6 +1285,7 @@ soundUnlockBtn.addEventListener('click', () => {
   let activeBalloons = []    // belon yang sedang di udara
   let winnerRevealed = false
   let currentWinnerMykad = ''
+  let currentWinnerPhone = ''
   let dramaticMode = false
   let allReleasedTriggered = false
 
@@ -1281,9 +1300,10 @@ soundUnlockBtn.addEventListener('click', () => {
     el.prizeOverlay.classList.add('visible')
   }
 
-  function showWinnerOverlay(name, mykad) {
+  function showWinnerOverlay(name, mykad, phone) {
     el.winnerName.textContent = name
     el.winnerMykad.textContent = maskMykad(mykad)
+    el.winnerPhone.textContent = phone ? `📞 ${phone}` : ''
     el.winnerOverlay.classList.add('visible')
   }
 
@@ -1346,6 +1366,7 @@ soundUnlockBtn.addEventListener('click', () => {
     allReleasedTriggered = false  
     showPrizeOverlay(payload.prizeName)
     currentWinnerMykad = payload.winnerMykad
+    currentWinnerPhone = payload.winnerPhone || ''
     releaseSchedule = buildReleaseSchedule(payload)
 
     phaseStartTime = performance.now()
@@ -1410,7 +1431,7 @@ soundUnlockBtn.addEventListener('click', () => {
     spotTarget.position.copy(pos)
     spotLight.position.set(pos.x, pos.y + 8, pos.z + 6)
     spotPulseUntil = performance.now() + 900
-    showWinnerOverlay(balloon.name, currentWinnerMykad)
+    showWinnerOverlay(balloon.name, currentWinnerMykad, currentWinnerPhone)
     stageChannel.send({ type: 'broadcast', event: 'winner-shown', payload: {} })
     winnerRevealed = true
     burstRemainingBalloons()
