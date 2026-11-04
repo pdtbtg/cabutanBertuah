@@ -512,7 +512,7 @@
     return new Set((data || []).map(w => String(w.participant_id)))
   }
 
-  exportBtn.addEventListener('click', async () => {
+    exportBtn.addEventListener('click', async () => {
     const list = table.rows({ search: 'applied', order: 'applied' }).data().toArray()
     if (list.length === 0) {
       Swal.fire('Tiada Data', 'Tiada peserta untuk dieksport.', 'info')
@@ -522,24 +522,68 @@
     exportBtn.disabled = true
     exportBtn.textContent = 'Menyediakan...'
 
-    const wonIds = await getWonParticipantIds()
-    const rows = list.map((p, i) => ({
-      '#': i + 1,
-      'Nama Penuh': p.full_name,
-      'No. MyKad': p.mykad_number,
-      'Penyertaan': p.urus_setia ? 'Urus Setia' : 'Awam',
-      'Tarikh Daftar': formatDate(p.reg_at),
-      'Bil. Pendaftaran': p.reg_count,
-      'Winner': wonIds.has(String(p.id)) ? 'Yes' : 'No'
-    }))
+    try {
+      const wonIds = await getWonParticipantIds()
+      const NO_DATE = 'Tiada Tarikh'
 
-    const worksheet = XLSX.utils.json_to_sheet(rows)
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Peserta')
-    XLSX.writeFile(workbook, `senarai-peserta-${new Date().toISOString().slice(0, 10)}.xlsx`)
+      // Kunci hari mengikut waktu Malaysia, contoh: 2026.11.06
+      const dayKey = (iso) => iso
+        ? new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Asia/Kuala_Lumpur' }).replace(/-/g, '.')
+        : NO_DATE
 
-    exportBtn.disabled = false
-    exportBtn.textContent = 'Eksport ke Excel'
+      // 1) Kumpulkan mengikut hari, kemudian gabungkan No. MyKad yang sama dalam hari tersebut
+      const days = new Map()   // 'YYYY.MM.DD' -> Map(mykad -> rekod gabungan)
+      for (const p of list) {
+        const key = dayKey(p.reg_at)
+        if (!days.has(key)) days.set(key, new Map())
+        const day = days.get(key)
+        const mykad = String(p.mykad_number ?? '').trim()
+        const t = p.reg_at ? new Date(p.reg_at).getTime() : 0
+
+        if (!day.has(mykad)) {
+          day.set(mykad, {
+            full_name: p.full_name,
+            mykad_number: p.mykad_number,
+            urus_setia: !!p.urus_setia,
+            first_at: p.reg_at,
+            first_t: t,
+            count: 1,
+            won: wonIds.has(String(p.id))
+          })
+        } else {
+          const r = day.get(mykad)
+          r.count++
+          r.urus_setia = r.urus_setia || !!p.urus_setia
+          r.won = r.won || wonIds.has(String(p.id))
+          if (t && (!r.first_t || t < r.first_t)) { r.first_t = t; r.first_at = p.reg_at }
+        }
+      }
+
+      // 2) Satu sheet bagi setiap hari (tarikh menaik, "Tiada Tarikh" di hujung)
+      const workbook = XLSX.utils.book_new()
+      const keys = Array.from(days.keys()).sort((a, b) =>
+        a === NO_DATE ? 1 : b === NO_DATE ? -1 : a.localeCompare(b))
+
+      for (const key of keys) {
+        const records = Array.from(days.get(key).values()).sort((a, b) => a.first_t - b.first_t)
+        const rows = records.map((r, i) => ({
+          '#': i + 1,
+          'Nama Penuh': r.full_name,
+          'No. MyKad': r.mykad_number,
+          'Tarikh Daftar': formatDate(r.first_at),
+          'Bil. Pendaftaran': r.count,
+          'Winner': r.won ? 'Yes' : 'No'
+        }))
+        const ws = XLSX.utils.json_to_sheet(rows)
+        ws['!cols'] = [{ wch: 5 }, { wch: 36 }, { wch: 16 }, { wch: 22 }, { wch: 16 }, { wch: 8 }]
+        XLSX.utils.book_append_sheet(workbook, ws, key)   // nama sheet maksimum 31 aksara
+      }
+
+      XLSX.writeFile(workbook, `senarai-peserta-${new Date().toISOString().slice(0, 10)}.xlsx`)
+    } finally {
+      exportBtn.disabled = false
+      exportBtn.textContent = 'Eksport ke Excel'
+    }
   })
 
   // ---------------- Padam baris dipilih ----------------
