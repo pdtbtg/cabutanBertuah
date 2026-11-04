@@ -326,6 +326,24 @@
     text-align: left;
   }
 
+  /* ---------------- Terms modal ---------------- */
+  .terms-link-btn { color: var(--brand); font-weight: 600; font-size: 0.82rem; text-decoration: none; }
+  .terms-link-btn:hover { color: var(--brand-dark); text-decoration: underline; }
+  
+  .terms-modal { border: 1px solid var(--line); border-radius: 18px; overflow: hidden; }
+  .terms-modal .modal-header { background: var(--brand-soft); border-bottom: 1px solid #cde8e3; }
+  .terms-modal .modal-title { font-size: 0.98rem; font-weight: 700; color: var(--brand-dark); line-height: 1.4; }
+  .terms-modal .modal-body { padding: 1.1rem 1.25rem; }
+  .terms-list { padding-left: 1.2rem; margin: 0; font-size: 0.88rem; line-height: 1.65; color: #374151; text-align: justify; }
+  .terms-list > li { margin-bottom: 0.65rem; }
+  .terms-list ul { margin-top: 0.3rem; margin-bottom: 0; }
+  .terms-modal .modal-footer { border-top: 1px solid var(--line); gap: 0.5rem; }
+  .terms-modal .btn-modal-agree {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    padding: 0.5rem 1.2rem; font-size: 0.92rem; box-shadow: none;
+  }
+  .terms-modal .btn-modal { border-radius: 12px; font-weight: 600; font-size: 0.92rem; }
+
   @media (min-width: 480px) {
     .program-title .title-main { font-size: 1.1rem; }
   }
@@ -390,7 +408,14 @@
               </div>
               <div class="terms-check">
                 <input type="checkbox" id="agreeTerms" required>
-                <label for="agreeTerms">Saya bersetuju dengan terma dan syarat yang telah ditetapkan oleh pihak penganjur.</label>
+                <label for="agreeTerms">Saya mengesahkan maklumat yang diberikan adalah benar dan bersetuju dengan
+                  <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">Terma dan Syarat</a>
+                yang telah ditetapkan oleh pihak penganjur.</label>
+              </div>
+              <div class="text-center" style="margin-top:-1dvh; margin-bottom:1.6dvh;">
+                <button type="button" class="btn btn-link btn-sm terms-link-btn" data-bs-toggle="modal" data-bs-target="#termsModal">
+                  <i class="bi bi-file-text me-1"></i>Baca Terma dan Syarat Penuh
+                </button>
               </div>
               <div class="field-error" id="termsError" style="margin-top:-1.4dvh; margin-bottom: 1.4dvh;">Sila sahkan persetujuan untuk teruskan pendaftaran.</div>
 
@@ -445,6 +470,46 @@
     </div>
   </div>
 
+<!-- ============ TERMS MODAL ============ -->
+<div class="modal fade" id="termsModal" tabindex="-1" aria-labelledby="termsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content terms-modal">
+      <div class="modal-header">
+        <h5 class="modal-title" id="termsModalLabel">Terma dan Syarat Penyertaan Cabutan Bertuah</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+      </div>
+      <div class="modal-body">
+        <ol class="terms-list">
+          <li>Penyertaan cabutan bertuah ini adalah terbuka kepada semua pengunjung yang memenuhi syarat penyertaan yang ditetapkan oleh pihak penganjur.</li>
+          <li>Peserta hendaklah mengisi semua maklumat yang diperlukan dengan lengkap dan tepat, iaitu:
+            <ul>
+              <li>Nama penuh;</li>
+              <li>Nombor MyKad (12 digit); dan</li>
+              <li>Nombor telefon.</li>
+            </ul>
+          </li>
+          <li>Peserta dibenarkan membuat pendaftaran lebih daripada sekali bagi setiap sesi cabutan. Walau bagaimanapun, hanya satu (1) penyertaan bagi setiap nombor MyKad akan diambil kira dalam setiap sesi cabutan.</li>
+          <li>Setiap peserta bertanggungjawab memastikan maklumat yang diberikan adalah benar, tepat dan terkini.</li>
+          <li>Pendaftaran yang tidak lengkap, mengandungi maklumat palsu atau tidak sah boleh dibatalkan oleh pihak penganjur.</li>
+          <li>Pihak penganjur berhak menolak atau membatalkan mana-mana penyertaan yang didapati tidak mematuhi terma dan syarat yang ditetapkan.</li>
+          <li>Pemilihan pemenang adalah berdasarkan cabutan secara rawak dan keputusan pihak penganjur adalah muktamad.</li>
+          <li>Pemenang hendaklah mengemukakan MyKad atau dokumen pengenalan diri yang sah bagi tujuan pengesahan sebelum hadiah diserahkan.</li>
+          <li>Hadiah cabutan bertuah adalah dalam bentuk wang tunai sahaja. Hadiah tidak boleh ditukar kepada bentuk lain, dipindah milik atau dituntut dalam bentuk selain yang ditetapkan oleh pihak penganjur.</li>
+          <li>Pihak penganjur berhak meminda terma dan syarat atau membatalkan cabutan bertuah sekiranya perlu tanpa notis terlebih dahulu.</li>
+          <li>Dengan melengkapkan pendaftaran, peserta dianggap telah membaca, memahami dan bersetuju untuk mematuhi semua terma dan syarat yang ditetapkan oleh pihak penganjur.</li>
+          <li>Maklumat peribadi peserta akan digunakan bagi tujuan pengurusan penyertaan, pelaksanaan cabutan bertuah dan urusan pengesahan pemenang sahaja, tertakluk kepada dasar pengurusan data pihak penganjur.</li>
+        </ol>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary btn-modal" data-bs-dismiss="modal">Tutup</button>
+        <button type="button" class="btn btn-primary btn-modal-agree" id="acceptTermsBtn" data-bs-dismiss="modal">
+          <i class="bi bi-check2-circle"></i><span>Saya Setuju</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+      
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -544,6 +609,12 @@
 
   agreeTerms.addEventListener('change', () => {
     if (agreeTerms.checked) termsError.style.display = 'none'
+  })
+
+  // "Saya Setuju" inside the terms popup ticks the checkbox
+  document.getElementById('acceptTermsBtn').addEventListener('click', () => {
+    agreeTerms.checked = true
+    termsError.style.display = 'none'
   })
 
   function isValidMyKad(value) {
