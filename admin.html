@@ -512,7 +512,7 @@
     return new Set((data || []).map(w => String(w.participant_id)))
   }
 
-    exportBtn.addEventListener('click', async () => {
+  exportBtn.addEventListener('click', async () => {
     const list = table.rows({ search: 'applied', order: 'applied' }).data().toArray()
     if (list.length === 0) {
       Swal.fire('Tiada Data', 'Tiada peserta untuk dieksport.', 'info')
@@ -544,7 +544,7 @@
           day.set(mykad, {
             full_name: p.full_name,
             mykad_number: p.mykad_number,
-            urus_setia: !!p.urus_setia,
+            phone: p.phone_number,
             first_at: p.reg_at,
             first_t: t,
             count: 1,
@@ -553,8 +553,8 @@
         } else {
           const r = day.get(mykad)
           r.count++
-          r.urus_setia = r.urus_setia || !!p.urus_setia
           r.won = r.won || wonIds.has(String(p.id))
+          if (!r.phone && p.phone_number) r.phone = p.phone_number
           if (t && (!r.first_t || t < r.first_t)) { r.first_t = t; r.first_at = p.reg_at }
         }
       }
@@ -570,13 +570,14 @@
           '#': i + 1,
           'Nama Penuh': r.full_name,
           'No. MyKad': r.mykad_number,
+          'No. Telefon': r.phone ?? '',
           'Tarikh Daftar': formatDate(r.first_at),
           'Bil. Pendaftaran': r.count,
           'Winner': r.won ? 'Yes' : 'No'
         }))
         const ws = XLSX.utils.json_to_sheet(rows)
-        ws['!cols'] = [{ wch: 5 }, { wch: 36 }, { wch: 16 }, { wch: 22 }, { wch: 16 }, { wch: 8 }]
-        XLSX.utils.book_append_sheet(workbook, ws, key)   // nama sheet maksimum 31 aksara
+        ws['!cols'] = [{ wch: 5 }, { wch: 36 }, { wch: 16 }, { wch: 16 }, { wch: 22 }, { wch: 16 }, { wch: 8 }]
+        XLSX.utils.book_append_sheet(workbook, ws, key)
       }
 
       XLSX.writeFile(workbook, `senarai-peserta-${new Date().toISOString().slice(0, 10)}.xlsx`)
