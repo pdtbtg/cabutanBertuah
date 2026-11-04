@@ -722,7 +722,7 @@
     let allParticipants
     try {
       allParticipants = await fetchAllRows(() => {
-        let q = supabase.from('participants').select('id, full_name, mykad_number, registered_at')
+        let q = supabase.from('participants').select('id, full_name, mykad_number, phone_number, registered_at')
         if (fromVal) q = q.gte('registered_at', fromVal.toISOString())
         q = q.lte('registered_at', untilVal.toISOString())
         return q.order('id', { ascending: true })
@@ -856,6 +856,7 @@
         names: eligibleParticipants.map(p => p.full_name),
         winnerName: winner.full_name,
         winnerMykad: winner.mykad_number,
+        winnerPhone: winner.phone_number,
         prizeName: prizeName,
         category: categoryFilter,
         duration: 2800
