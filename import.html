@@ -288,61 +288,72 @@
     countBadge.textContent = `${count} peserta demo`
   }
 
-  // ---------- CSV parsing (handles quoted fields with commas) ----------
-  function parseCsv(text) {
-    const rows = []
-    let row = []
-    let field = ''
-    let inQuotes = false
+  function detectDelimiter(text) {
+  const firstLine = text.replace(/^\uFEFF/, '').split(/\r?\n/)[0] || ''
+  const counts = { ',': 0, ';': 0, '\t': 0 }
+  for (const d of Object.keys(counts)) counts[d] = firstLine.split(d).length - 1
+  return Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0]
+}
 
-    for (let i = 0; i < text.length; i++) {
-      const c = text[i]
-      if (inQuotes) {
-        if (c === '"') {
-          if (text[i + 1] === '"') { field += '"'; i++ }
-          else inQuotes = false
-        } else field += c
-      } else {
-        if (c === '"') inQuotes = true
-        else if (c === ',') { row.push(field); field = '' }
-        else if (c === '\n') { row.push(field); rows.push(row); row = []; field = '' }
-        else if (c === '\r') { /* skip */ }
-        else field += c
-      }
-    }
-    if (field.length > 0 || row.length > 0) { row.push(field); rows.push(row) }
-    return rows.filter(r => r.some(v => v.trim() !== ''))
-  }
+function parseCsv(text, delim = ',') {
+  const rows = []
+  let row = []
+  let field = ''
+  let inQuotes = false
 
-  function findColumn(headers, candidates) {
-    const lower = headers.map(h => h.trim().toLowerCase())
-    for (const cand of candidates) {
-      const idx = lower.indexOf(cand)
-      if (idx !== -1) return idx
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i]
+    if (inQuotes) {
+      if (c === '"') {
+        if (text[i + 1] === '"') { field += '"'; i++ }
+        else inQuotes = false
+      } else field += c
+    } else {
+      if (c === '"') inQuotes = true
+      else if (c === delim) { row.push(field); field = '' }
+      else if (c === '\n') { row.push(field); rows.push(row); row = []; field = '' }
+      else if (c === '\r') { /* skip */ }
+      else field += c
     }
-    return -1
   }
+  if (field.length > 0 || row.length > 0) { row.push(field); rows.push(row) }
+  return rows.filter(r => r.some(v => v.trim() !== ''))
+}
+
+function norm(h) {
+  return h.replace(/^\uFEFF/, '').replace(/["']/g, '').trim().toLowerCase().replace(/[\s_-]+/g, '_')
+}
+
+function findColumn(headers, candidates) {
+  const lower = headers.map(norm)
+  for (const cand of candidates) {
+    const idx = lower.indexOf(cand)
+    if (idx !== -1) return idx
+  }
+  return -1
+}
 
   csvFile.addEventListener('change', () => {
     const file = csvFile.files[0]
     if (!file) return
-
+  
     const reader = new FileReader()
     reader.onload = () => {
-      const rows = parseCsv(reader.result)
+      const delim = detectDelimiter(reader.result)          // NEW
+      const rows = parseCsv(reader.result, delim)           // CHANGED (added delim)
       if (rows.length < 2) {
         alert('Fail CSV kosong atau tiada baris data.')
         return
       }
       const headers = rows[0]
       const nameIdx = findColumn(headers, ['full_name', 'nama', 'name'])
-      const icIdx = findColumn(headers, ['mykad_number', 'no_kp', 'nokp', 'ic', 'mykad'])
-
+      const icIdx = findColumn(headers, ['mykad_number', 'no_kp', 'nokp', 'ic', 'mykad', 'no_kad_pengenalan'])  // CHANGED
+  
       if (nameIdx === -1 || icIdx === -1) {
-        alert('Tidak jumpa kolum nama / no. kad pengenalan. Pastikan header CSV betul (cth: full_name,mykad_number).')
+        alert('Tidak jumpa kolum nama / no. kad pengenalan.\nHeader yang dikesan: ' + headers.join(' | '))  // CHANGED
         return
       }
-
+  
       let errorCount = 0
       parsedRows = rows.slice(1).map(r => {
         const full_name = (r[nameIdx] || '').trim()
@@ -350,13 +361,13 @@
         if (!full_name || !mykad_number) errorCount++
         return { full_name, mykad_number }
       }).filter(r => r.full_name && r.mykad_number)
-
+  
       previewCount.textContent = parsedRows.length
       previewErrors.textContent = errorCount > 0 ? `${errorCount} baris diabaikan (data tidak lengkap)` : ''
       previewBody.innerHTML = parsedRows.slice(0, 50).map((r, i) => `
         <tr><td>${i + 1}</td><td>${r.full_name}</td><td>${r.mykad_number}</td></tr>
       `).join('') + (parsedRows.length > 50 ? `<tr><td colspan="3" class="text-center text-muted">...dan ${parsedRows.length - 50} lagi</td></tr>` : '')
-
+  
       previewWrap.style.display = 'block'
       importBtn.disabled = parsedRows.length === 0
       importResult.innerHTML = ''
