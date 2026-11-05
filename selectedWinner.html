@@ -1,0 +1,297 @@
+<!-- selectedWinner.html -->
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="assets/pahang.ico" type="image/x-icon">
+<title>Pemenang Nombor Pendaftaran</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root { --brand: #0f766e; --accent: #f59e0b; --ink: #ecfdf9; }
+  * { box-sizing: border-box; }
+  html, body {
+    height: 100dvh; margin: 0; overflow: hidden;
+    background: #04302c; color: var(--ink);
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+
+  /* ---------------- Background (sama seperti stage.html) ---------------- */
+  body::after {
+    content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image: url("assets/dataranBentong.webp");
+    background-size: cover; background-position: center; background-repeat: no-repeat;
+  }
+  body::before {
+    content: ""; position: fixed; inset: 0; z-index: 1; pointer-events: none;
+    background:
+      radial-gradient(1200px 700px at 50% 92%, rgba(245,158,11,0.24), transparent 60%),
+      radial-gradient(900px 600px at 12% 0%, rgba(20,105,184,0.3), transparent 60%),
+      linear-gradient(160deg, rgba(5,18,46,0.75) 0%, rgba(11,51,79,0.65) 50%, rgba(15,27,118,0.75) 100%);
+  }
+
+  .stage-hero {
+    position: fixed; left: 50%; top: 40%; transform: translate(-50%, -50%);
+    height: 50dvh; width: auto; max-width: 90vw; object-fit: contain;
+    z-index: 2; pointer-events: none;
+    transition: opacity 0.5s ease;
+  }
+  body.active .stage-hero { opacity: 0; }
+
+  /* ---------------- Brand bar ---------------- */
+  .stage-brand-bar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 30;
+    display: flex; flex-direction: column; align-items: center; gap: 0.7dvh;
+    padding: 2dvh 3vw 2.4dvh; text-align: center;
+    background: linear-gradient(180deg, rgba(3,32,29,0.8) 0%, rgba(3,32,29,0) 100%);
+  }
+  .brand-pill {
+    font-size: 2.1dvh; font-weight: 700; letter-spacing: 0.26em; text-transform: uppercase;
+    color: #3b2300; background: linear-gradient(135deg, #fde68a, var(--accent));
+    padding: 0.6dvh 2.2dvh; border-radius: 999px; box-shadow: 0 4px 16px rgba(245,158,11,0.35);
+  }
+
+  /* ---------------- Idle text ---------------- */
+  #idleText {
+    position: fixed; left: 0; right: 0; bottom: 8dvh; z-index: 10; text-align: center;
+    font-size: 3dvh; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+    color: rgba(236,253,249,0.85); text-shadow: 0 2px 18px rgba(0,0,0,0.5);
+    transition: opacity 0.4s ease;
+  }
+  body.active #idleText { opacity: 0; }
+
+  /* ---------------- Winner card ---------------- */
+  #winnerOverlay {
+    position: fixed; top: 50%; left: 0; right: 0; z-index: 20;
+    text-align: center; padding: 0 4vw;
+    opacity: 0; transform: translateY(-50%) scale(0.9);
+    transition: opacity 0.5s ease, transform 0.6s cubic-bezier(.2,.9,.3,1.3);
+    pointer-events: none;
+  }
+  #winnerOverlay.visible { opacity: 1; transform: translateY(-50%) scale(1); }
+  .winner-card {
+    display: inline-block; max-width: 92vw; min-width: 40vw;
+    padding: 4dvh 6vw 3.6dvh; border-radius: 36px;
+    background: rgba(4,40,37,0.62);
+    -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.18);
+    box-shadow: 0 30px 80px rgba(0,0,0,0.4);
+  }
+  .winner-kicker {
+    font-size: 2.6dvh; font-weight: 700; letter-spacing: 0.24em; text-transform: uppercase;
+    color: #fde68a; margin-bottom: 1.2dvh;
+  }
+  .reg-date { font-size: 2.4dvh; font-weight: 600; color: rgba(236,253,249,0.8); min-height: 1.3em; }
+
+  #posNumber {
+    font-size: 17dvh; font-weight: 800; line-height: 1.05; margin: 1dvh 0;
+    color: #fde68a; font-variant-numeric: tabular-nums; letter-spacing: 0.03em;
+    text-shadow: 0 2px 30px rgba(253,230,138,0.35);
+    transition: font-size 0.5s ease;
+  }
+  #winnerOverlay.landed #posNumber { font-size: 11dvh; }
+
+  .reveal { opacity: 0; max-height: 0; overflow: hidden; transition: opacity 0.6s ease 0.2s, max-height 0.6s ease; }
+  #winnerOverlay.landed .reveal { opacity: 1; max-height: 40dvh; }
+
+  .winner-name {
+    color: #fff; font-size: 9.5dvh; font-weight: 800; line-height: 1.08;
+    margin: 1.2dvh auto 0; word-break: break-word;
+    text-shadow: 0 2px 30px rgba(253,230,138,0.35);
+  }
+  .winner-mykad {
+    display: inline-block; margin-top: 2.4dvh; padding: 0.8dvh 2.4dvh; border-radius: 999px;
+    background: rgba(255,255,255,0.1); color: rgba(236,253,249,0.85);
+    font-size: 3.6dvh; font-weight: 600; letter-spacing: 0.08em; font-variant-numeric: tabular-nums;
+  }
+  .winner-phone {
+    display: block; width: fit-content; margin: 1.4dvh auto 0; padding: 0.8dvh 2.4dvh; border-radius: 999px;
+    background: rgba(253,230,138,0.14); border: 1px solid rgba(253,230,138,0.35);
+    color: #fde68a; font-size: 3.6dvh; font-weight: 700; letter-spacing: 0.08em; font-variant-numeric: tabular-nums;
+  }
+  .winner-phone:empty, .winner-mykad:empty { display: none; }
+
+  /* ---------------- Sound button (sama seperti stage.html) ---------------- */
+  #soundUnlockBtn {
+    position: fixed; top: 12px; right: 12px; z-index: 40; width: 36px; height: 36px;
+    border-radius: 50%; border: 1px solid rgba(255,255,255,0.25);
+    background: rgba(4,40,37,0.55); color: #fff; font-size: 15px; line-height: 1; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: opacity 0.3s ease; opacity: 0.6;
+  }
+  #soundUnlockBtn:hover { opacity: 1; }
+  #soundUnlockBtn.hidden { opacity: 0; pointer-events: none; }
+
+  @media (prefers-reduced-motion: reduce) {
+    #winnerOverlay, .reveal, #posNumber { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="stage-brand-bar">
+  <span class="brand-pill">Cabutan Bertuah</span>
+</div>
+<img src="assets/background.webp" alt="Karnival Aspirasi Pahang1st Peringkat Daerah Bentong 2026" class="stage-hero">
+<div id="idleText">Menunggu nombor pendaftaran...</div>
+<button id="soundUnlockBtn" title="Aktifkan bunyi" aria-label="Aktifkan bunyi">🔇</button>
+
+<div id="winnerOverlay">
+  <div class="winner-card">
+    <div class="winner-kicker">🎉 Tahniah</div>
+    <div class="reg-date" id="regDate"></div>
+    <div id="posNumber"></div>
+    <div class="reveal">
+      <div class="winner-name" id="winnerName"></div>
+      <div class="winner-mykad" id="winnerMykad"></div>
+      <div class="winner-phone" id="winnerPhone"></div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
+
+  const SUPABASE_URL = 'https://brcxlubmlymtpiwbjwez.supabase.co'
+  const SUPABASE_ANON_KEY = 'sb_publishable_VX22OseUPH_DdPN_jasgWA_1Vtwg4u9'
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+
+  const ROLL_MS = 2500   // tempoh nombor bergolek sebelum berhenti
+
+  const el = {
+    overlay: document.getElementById('winnerOverlay'),
+    date: document.getElementById('regDate'),
+    number: document.getElementById('posNumber'),
+    name: document.getElementById('winnerName'),
+    mykad: document.getElementById('winnerMykad'),
+    phone: document.getElementById('winnerPhone'),
+    soundBtn: document.getElementById('soundUnlockBtn'),
+  }
+
+  /* ============================================================
+     BUNYI (guna fail audio sedia ada dalam folder assets)
+     ============================================================ */
+  const Sound = (() => {
+    let ctx = null, unlocked = false, master = null
+    let idleBuf = null, fanfareBuf = null
+    let idleNode = null, resumeTimer = null
+
+    const getCtx = () => ctx || (ctx = new (window.AudioContext || window.webkitAudioContext)())
+    const dest = () => {
+      const c = getCtx()
+      if (!master) { master = c.createGain(); master.gain.value = 0.9; master.connect(c.destination) }
+      return master
+    }
+    async function load(url) {
+      const res = await fetch(url)
+      return getCtx().decodeAudioData(await res.arrayBuffer())
+    }
+    ;(async () => {
+      try {
+        ;[idleBuf, fanfareBuf] = await Promise.all([load('assets/idle-loop.mp3'), load('assets/winner-fanfare.mp3')])
+        if (unlocked) idleStart()
+      } catch (e) { console.error('[Sound] gagal memuatkan audio:', e) }
+    })()
+
+    function idleStart() {
+      if (!unlocked || idleNode || !idleBuf) return
+      const c = getCtx(), t = c.currentTime
+      const gain = c.createGain()
+      gain.gain.setValueAtTime(0.0001, t)
+      gain.gain.linearRampToValueAtTime(0.5, t + 2)
+      const src = c.createBufferSource()
+      src.buffer = idleBuf; src.loop = true
+      src.connect(gain).connect(dest()); src.start(t)
+      idleNode = { gain, src }
+    }
+    function idleStop(fade = 0.6) {
+      if (!idleNode) return
+      const c = getCtx(), n = idleNode
+      idleNode = null
+      const t = c.currentTime
+      n.gain.gain.cancelScheduledValues(t)
+      n.gain.gain.setValueAtTime(n.gain.gain.value, t)
+      n.gain.gain.linearRampToValueAtTime(0.0001, t + fade)
+      setTimeout(() => { try { n.src.stop() } catch (e) {} }, fade * 1000 + 100)
+    }
+    return {
+      unlock() {
+        const c = getCtx()
+        if (c.state === 'suspended') c.resume()
+        unlocked = true
+        idleStart()
+      },
+      rollStart() { idleStop(); clearTimeout(resumeTimer) },
+      reveal() {
+        if (unlocked && fanfareBuf) {
+          const c = getCtx(), src = c.createBufferSource(), g = c.createGain()
+          src.buffer = fanfareBuf; g.gain.value = 0.85
+          src.connect(g).connect(dest()); src.start()
+        }
+        clearTimeout(resumeTimer)
+        resumeTimer = setTimeout(idleStart, 7500)
+      },
+    }
+  })()
+
+  ;['pointerdown', 'keydown'].forEach((evt) =>
+    window.addEventListener(evt, () => { Sound.unlock(); el.soundBtn.classList.add('hidden') }, { once: true }))
+  el.soundBtn.addEventListener('click', () => { Sound.unlock(); el.soundBtn.classList.add('hidden') }, { once: true })
+
+  /* ============================================================
+     PAPARAN NOMBOR
+     ============================================================ */
+  let rollTimer = null
+
+  function show(p) {
+    clearInterval(rollTimer)
+    const position = String(p.position)
+
+    document.body.classList.add('active')
+    el.overlay.classList.remove('landed')
+    el.date.textContent = p.dateLabel ? `Pendaftaran ${p.dateLabel}` : ''
+    el.name.textContent = p.name || '-'
+    el.mykad.textContent = p.mykad || ''
+    el.phone.textContent = p.phone && p.phone !== '-' ? `📞 ${p.phone}` : ''
+    el.number.textContent = '#' + '0'.repeat(position.length)
+    el.overlay.classList.add('visible')
+    Sound.rollStart()
+
+    const land = () => {
+      el.number.textContent = '#' + position
+      el.overlay.classList.add('landed')
+      Sound.reveal()
+    }
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { land(); return }
+
+    const start = Date.now()
+    rollTimer = setInterval(() => {
+      if (Date.now() - start >= ROLL_MS) { clearInterval(rollTimer); land(); return }
+      let s = ''
+      for (let i = 0; i < position.length; i++) s += Math.floor(Math.random() * 10)
+      el.number.textContent = '#' + s
+    }, 70)
+  }
+
+  supabase.channel('position-stage')
+    .on('broadcast', { event: 'show-position' }, ({ payload }) => {
+      if (payload && payload.position != null) show(payload)
+    })
+    .subscribe()
+
+  // Ujian tanpa control.html: buka selectedWinner.html?demo=1
+  if (new URLSearchParams(location.search).get('demo') === '1') {
+    setTimeout(() => show({
+      position: 1000,
+      dateLabel: '6 November 2026',
+      name: 'AHMAD BIN ALI',
+      mykad: '(********1234)',
+      phone: '0123456789'
+    }), 1500)
+  }
+</script>
+
+</body>
+</html>
