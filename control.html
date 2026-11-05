@@ -442,7 +442,7 @@
           <div class="row g-2 mb-3">
             <div class="col-12 col-sm-5">
               <label class="form-label" for="posDate">Tarikh pendaftaran</label>
-              <input type="date" class="form-control" id="posDate">
+              <input type="text" class="form-control" id="posDate" placeholder="Pilih tarikh">
             </div>
             <div class="col-12 col-sm-7">
               <label class="form-label" for="posInput">Nombor pendaftaran hari tersebut</label>
@@ -682,7 +682,32 @@
   let posPending = null   // peserta yang disemak, menunggu pengesahan
 
   const todayMY = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kuala_Lumpur' })  // YYYY-MM-DD
-  posDate.value = todayMY()
+  const POS_DATE_KEY = 'cabutan_pos_date'
+  let savedPosDate = ''
+  try { savedPosDate = sessionStorage.getItem(POS_DATE_KEY) || '' } catch (e) {}
+
+  const fpPosDate = flatpickr('#posDate', {
+    altInput: true,
+    altFormat: 'j F Y',          // dipaparkan: 5 November 2026
+    dateFormat: 'Y-m-d',         // nilai sebenar: 2026-11-05 (kod sedia ada tidak perlu diubah)
+    defaultDate: savedPosDate || todayMY(),
+    maxDate: 'today',            // tarikh akan datang tiada pendaftaran
+    disableMobile: true,         // guna kalendar flatpickr juga di telefon
+    locale: {
+      months: {
+        shorthand: ['Jan', 'Feb', 'Mac', 'Apr', 'Mei', 'Jun', 'Jul', 'Ogo', 'Sep', 'Okt', 'Nov', 'Dis'],
+        longhand: MS_MONTHS
+      },
+      weekdays: {
+        shorthand: ['Aha', 'Isn', 'Sel', 'Rab', 'Kha', 'Jum', 'Sab'],
+        longhand: ['Ahad', 'Isnin', 'Selasa', 'Rabu', 'Khamis', 'Jumaat', 'Sabtu']
+      }
+    },
+    onChange: (selectedDates, dateStr) => {
+      try { sessionStorage.setItem(POS_DATE_KEY, dateStr) } catch (e) {}
+      clearPreview()
+    }
+  })
 
   function dateLabel(d) {
     const [y, m, day] = String(d).split('-')
@@ -915,6 +940,18 @@
     document.body.classList.contains('pos-mode') ? exitPosMode() : enterPosMode()
   })
 
+  // ---------------- Ingat mod semasa (kekal selepas F5) ----------------
+  const UI_MODE_KEY = 'cabutan_ui_mode'   // '' = cabutan biasa, 'simple', 'pos'
+  function saveUiMode(m) { try { localStorage.setItem(UI_MODE_KEY, m) } catch (e) {} }
+  function loadUiMode() { try { return localStorage.getItem(UI_MODE_KEY) || '' } catch (e) { return '' } }
+
+  function persistMode() {
+    const c = document.body.classList
+    saveUiMode(c.contains('vvip-mode') ? 'simple' : c.contains('pos-mode') ? 'pos' : '')
+  }
+  // Setiap kali kelas <body> berubah (masuk/keluar mana-mana mod), simpan secara automatik
+  new MutationObserver(persistMode).observe(document.body, { attributes: true, attributeFilter: ['class'] })
+
   // ---------------- Flatpickr: registration eligibility window ----------------
    const fpFrom = flatpickr('#eligibleFrom', {
     enableTime: true,
@@ -976,6 +1013,9 @@
       .on('postgres_changes', { event: '*', schema: 'public', table: 'prizes' }, () => fetchPrizes())
       .subscribe()
     loadWinnersList()
+    const savedMode = loadUiMode()
+    if (savedMode === 'pos') enterPosMode()
+    else if (savedMode === 'simple') enterVvipMode()
   }
   function showLogin() {
     loginScreen.style.display = 'flex'
