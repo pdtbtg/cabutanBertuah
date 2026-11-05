@@ -298,6 +298,25 @@
   body.vvip-mode #lastWinnerPrize { color: #fde1a6; }
   .vvip-exit-btn { position: fixed; top: 14px; right: 14px; z-index: 50; opacity: 0.5; }
   .vvip-exit-btn:hover { opacity: 1; }
+
+  /* ---------------- Mod Pilih Nombor ---------------- */
+  #posMode { display: none; }
+  body.pos-mode #posMode { display: block; }
+  body.pos-mode:not(.vvip-mode) .draw-link,
+  body.pos-mode:not(.vvip-mode) .setup-card,
+  body.pos-mode:not(.vvip-mode) .prize-card,
+  body.pos-mode:not(.vvip-mode) #drawCard,
+  body.pos-mode:not(.vvip-mode) .draw-winners { display: none !important; }
+  body.vvip-mode #posMode { display: none !important; }
+  
+  #posInput { font-size: 1.4rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  #posPreview {
+    display: none; margin-top: 2dvh; padding: 2dvh 4vw; text-align: center;
+    background: var(--brand-soft); border: 1px solid #cddcf7; border-radius: 14px;
+  }
+  #posPreviewNo { font-weight: 800; font-size: 1.6rem; color: var(--brand-dark); }
+  #posPreviewName { font-weight: 700; font-size: 1.15rem; }
+  #posPreviewInfo { color: var(--ink-soft); font-variant-numeric: tabular-nums; margin-bottom: 1.2dvh; }
 </style>
 </head>
 <body>
@@ -342,12 +361,13 @@
     <div class="top-bar">
       <h4>Panel Kawalan</h4>
       <div class="d-flex gap-2">
+        <button class="btn btn-soft btn-sm" id="posToggleBtn">Pilih Nombor Bertuah</button>
         <button class="btn btn-soft btn-sm" id="vvipToggleBtn">Mod Simple</button>
         <button class="btn btn-soft danger btn-sm" id="logoutBtn">Log Keluar</button>
       </div>
     </div>
 
-    <div class="stage-link-box">
+    <div class="stage-link-box draw-link">
       Buka skrin pentas (untuk paparan besar) di:<br>
       <strong id="stageLinkText"></strong>
     </div>
@@ -409,8 +429,59 @@
       </div>
     </div>
 
+    <!-- ============ MOD PILIH NOMBOR ============ -->
+    <div id="posMode">
+      <div class="stage-link-box">
+        Buka skrin pentas nombor pendaftaran di:<br>
+        <strong id="posStageLinkText"></strong>
+      </div>
+    
+      <div class="card-block">
+        <h6>Pilih Peserta Mengikut Nombor Pendaftaran</h6>
+        <form id="posForm" novalidate>
+          <div class="row g-2 mb-3">
+            <div class="col-12 col-sm-5">
+              <label class="form-label" for="posDate">Tarikh pendaftaran</label>
+              <input type="date" class="form-control" id="posDate">
+            </div>
+            <div class="col-12 col-sm-7">
+              <label class="form-label" for="posInput">Nombor pendaftaran hari tersebut</label>
+              <input type="text" inputmode="numeric" autocomplete="off" class="form-control" id="posInput" placeholder="cth: 1000">
+            </div>
+          </div>
+          <div class="d-grid">
+            <button type="submit" class="btn btn-primary btn-lg" id="posCheckBtn">Semak</button>
+          </div>
+        </form>
+        <div class="window-hint">Nombor bermula dari 1 bagi setiap hari. Tekan Semak untuk melihat nama, kemudian Sahkan untuk memaparkan di skrin dan menambah ke senarai.</div>
+    
+        <div id="posPreview">
+          <div id="posPreviewNo"></div>
+          <div id="posPreviewName"></div>
+          <div id="posPreviewInfo"></div>
+          <div class="d-grid">
+            <button type="button" class="btn btn-primary" id="posConfirmBtn">Sahkan &amp; Papar di Skrin</button>
+          </div>
+        </div>
+      </div>
+    
+      <div class="card-block winners-card">
+        <h6>Senarai Pemenang Nombor Pendaftaran</h6>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle">
+            <thead>
+              <tr><th>#</th><th>Tarikh</th><th>No.</th><th>Nama</th><th>No. MyKad</th><th>No. Telefon</th><th>Masa</th><th></th></tr>
+            </thead>
+            <tbody id="posBody">
+              <tr><td colspan="8" class="text-center text-muted py-3">Tiada pemenang lagi.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- Senarai pemenang -->
-    <div class="card-block winners-card">
+    <div class="card-block winners-card draw-winners">
       <h6>Senarai Pemenang</h6>
       <div class="table-responsive">
         <table class="table table-sm align-middle">
@@ -588,6 +659,218 @@
   }
   vvipToggleBtn.addEventListener('click', enterVvipMode)
   vvipExitBtn.addEventListener('click', exitVvipMode)
+
+  // ---------------- Mod Pilih Nombor (nombor pendaftaran harian) ----------------
+  const posToggleBtn = document.getElementById('posToggleBtn')
+  const posForm = document.getElementById('posForm')
+  const posDate = document.getElementById('posDate')
+  const posInput = document.getElementById('posInput')
+  const posCheckBtn = document.getElementById('posCheckBtn')
+  const posConfirmBtn = document.getElementById('posConfirmBtn')
+  const posPreview = document.getElementById('posPreview')
+  const posPreviewNo = document.getElementById('posPreviewNo')
+  const posPreviewName = document.getElementById('posPreviewName')
+  const posPreviewInfo = document.getElementById('posPreviewInfo')
+  const posBody = document.getElementById('posBody')
+
+  document.getElementById('posStageLinkText').textContent = new URL('selectedWinner.html', window.location.href).href
+
+  const posChannel = supabase.channel('position-stage')
+  let posChannelReady = false
+  let posSubscribed = false
+  let posCache = []
+  let posPending = null   // peserta yang disemak, menunggu pengesahan
+
+  const todayMY = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kuala_Lumpur' })  // YYYY-MM-DD
+  posDate.value = todayMY()
+
+  function dateLabel(d) {
+    const [y, m, day] = String(d).split('-')
+    return `${Number(day)} ${MS_MONTHS[Number(m) - 1]} ${y}`
+  }
+
+  // Contoh: 900101011234 -> (********1234)  (sama seperti stage.html)
+  function maskMykad(m) {
+    const digits = String(m ?? '').replace(/\D/g, '')
+    if (!digits) return ''
+    if (digits.length <= 4) return `(${digits})`
+    return `(${'*'.repeat(digits.length - 4)}${digits.slice(-4)})`
+  }
+
+  // Sehari penuh mengikut waktu Malaysia (UTC+8)
+  function dayRange(dateStr) {
+    const start = new Date(`${dateStr}T00:00:00+08:00`)
+    const end = new Date(start.getTime() + 24 * 60 * 60 * 1000)
+    return { start: start.toISOString(), end: end.toISOString() }
+  }
+
+  function clearPreview() {
+    posPending = null
+    posPreview.style.display = 'none'
+  }
+
+  function showOnStage(w) {
+    if (!posChannelReady) {
+      Swal.fire({ icon: 'error', title: 'Ralat sambungan', text: 'Skrin pentas belum bersambung. Sila muat semula halaman ini.' })
+      return false
+    }
+    posChannel.send({
+      type: 'broadcast',
+      event: 'show-position',
+      payload: {
+        position: w.reg_position,
+        dateLabel: dateLabel(w.reg_date),
+        name: w.full_name,
+        mykad: maskMykad(w.mykad_number),
+        phone: w.phone_number || '-'
+      }
+    })
+    return true
+  }
+
+  async function loadPosList() {
+    const { data, error } = await supabase
+      .from('position_winners')
+      .select('id, reg_date, reg_position, full_name, mykad_number, phone_number, created_at')
+      .order('created_at', { ascending: false })
+    if (error) { console.error(error); toast('error', 'Gagal memuatkan senarai.'); return }
+    posCache = data || []
+
+    if (posCache.length === 0) {
+      posBody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-3">Tiada pemenang lagi.</td></tr>`
+      return
+    }
+    posBody.innerHTML = posCache.map((w, i) => `
+      <tr>
+        <td>${i + 1}</td>
+        <td class="text-nowrap">${esc(dateLabel(w.reg_date))}</td>
+        <td class="mykad-cell fw-bold">#${esc(w.reg_position)}</td>
+        <td>${esc(w.full_name) || '-'}</td>
+        <td class="mykad-cell">${esc(w.mykad_number) || '-'}</td>
+        <td class="mykad-cell">${esc(w.phone_number) || '-'}</td>
+        <td>${formatDateMY(w.created_at)}</td>
+        <td class="text-end text-nowrap">
+          <button class="btn btn-soft btn-sm" data-action="show" data-id="${esc(w.id)}">Papar semula</button>
+          <button class="btn btn-soft danger btn-sm" data-action="delete" data-id="${esc(w.id)}">Padam</button>
+        </td>
+      </tr>
+    `).join('')
+  }
+
+  posBody.addEventListener('click', async (e) => {
+    const btn = e.target.closest('button[data-action]')
+    if (!btn) return
+    const w = posCache.find(x => String(x.id) === btn.dataset.id)
+    if (!w) return
+    if (btn.dataset.action === 'show') { showOnStage(w); return }
+    if (btn.dataset.action === 'delete') {
+      const res = await Swal.fire({
+        icon: 'question', title: `Padam #${w.reg_position} (${dateLabel(w.reg_date)})?`,
+        showCancelButton: true, confirmButtonText: 'Padam', cancelButtonText: 'Batal', confirmButtonColor: '#dc2626'
+      })
+      if (!res.isConfirmed) return
+      const { error } = await supabase.from('position_winners').delete().eq('id', w.id)
+      if (error) { console.error(error); toast('error', 'Gagal memadam.'); return }
+      await loadPosList()
+    }
+  })
+
+  posInput.addEventListener('input', () => {
+    posInput.value = posInput.value.replace(/\D/g, '').slice(0, 9)
+    clearPreview()
+  })
+  posDate.addEventListener('change', clearPreview)
+
+  // Langkah 1: Semak - cari peserta dan papar pratonton (belum ke skrin)
+  posForm.addEventListener('submit', async (e) => {
+    e.preventDefault()
+    clearPreview()
+    const date = posDate.value
+    const n = Number(posInput.value)
+    if (!date) { toast('warning', 'Sila pilih tarikh pendaftaran.'); return }
+    if (!Number.isInteger(n) || n < 1) { toast('warning', 'Sila masukkan nombor yang sah.'); return }
+    if (posCache.some(w => w.reg_date === date && w.reg_position === n)) {
+      toast('info', 'Nombor ini sudah ada dalam senarai.'); return
+    }
+
+    posCheckBtn.disabled = true
+    try {
+      const { start, end } = dayRange(date)
+      const { data, error } = await supabase
+        .from('participants')
+        .select('full_name, mykad_number, phone_number, reg_position')
+        .eq('reg_position', n)
+        .gte('registered_at', start)
+        .lt('registered_at', end)
+        .limit(2)
+      if (error) throw error
+      if (!data || data.length === 0) {
+        Swal.fire({ icon: 'warning', title: 'Tidak dijumpai', text: `Tiada peserta dengan nombor ${n} pada ${dateLabel(date)}.` })
+        return
+      }
+      if (data.length > 1) {
+        Swal.fire({ icon: 'error', title: 'Nombor bertindih', text: `Lebih daripada satu rekod bernombor ${n} pada ${dateLabel(date)}. Semak data reg_position.` })
+        return
+      }
+      const p = data[0]
+      posPending = { reg_date: date, reg_position: n, full_name: p.full_name, mykad_number: p.mykad_number, phone_number: p.phone_number }
+      posPreviewNo.textContent = `#${n} · ${dateLabel(date)}`
+      posPreviewName.textContent = p.full_name
+      posPreviewInfo.textContent = `${p.mykad_number} · ${p.phone_number || '-'}`
+      posPreview.style.display = 'block'
+    } catch (err) {
+      console.error(err)
+      Swal.fire({ icon: 'error', title: 'Ralat', text: err.message || String(err) })
+    } finally {
+      posCheckBtn.disabled = false
+    }
+  })
+
+  // Langkah 2: Sahkan - simpan ke senarai dan papar di skrin pentas
+  posConfirmBtn.addEventListener('click', async () => {
+    if (!posPending) return
+    if (!posChannelReady) {
+      Swal.fire({ icon: 'error', title: 'Ralat sambungan', text: 'Skrin pentas belum bersambung. Sila muat semula halaman ini.' })
+      return
+    }
+    posConfirmBtn.disabled = true
+    try {
+      const row = posPending
+      const { error } = await supabase.from('position_winners').insert([row])
+      if (error) {
+        if (error.code === '23505') { toast('info', 'Nombor ini sudah ada dalam senarai.'); await loadPosList(); clearPreview(); return }
+        throw error
+      }
+      showOnStage(row)
+      clearPreview()
+      posInput.value = ''
+      await loadPosList()
+      toast('success', 'Dipaparkan di skrin.')
+    } catch (err) {
+      console.error(err)
+      Swal.fire({ icon: 'error', title: 'Ralat', text: err.message || String(err) })
+    } finally {
+      posConfirmBtn.disabled = false
+      posInput.focus()
+    }
+  })
+
+  function enterPosMode() {
+    document.body.classList.add('pos-mode')
+    posToggleBtn.textContent = 'Mod Cabutan'
+    if (!posSubscribed) {
+      posSubscribed = true
+      posChannel.subscribe((status) => { posChannelReady = status === 'SUBSCRIBED' })
+    }
+    loadPosList()
+  }
+  function exitPosMode() {
+    document.body.classList.remove('pos-mode')
+    posToggleBtn.textContent = 'Mod Pilih Nombor'
+  }
+  posToggleBtn.addEventListener('click', () => {
+    document.body.classList.contains('pos-mode') ? exitPosMode() : enterPosMode()
+  })
 
   // ---------------- Flatpickr: registration eligibility window ----------------
    const fpFrom = flatpickr('#eligibleFrom', {
