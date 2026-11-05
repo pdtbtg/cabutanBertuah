@@ -178,7 +178,7 @@
       <div style="max-height: 240px; overflow-y: auto;" class="border rounded mb-3">
         <table class="table table-sm mb-0">
           <thead class="table-light" style="position: sticky; top: 0;">
-            <tr><th>#</th><th>Nama</th><th>No. Kad Pengenalan</th></tr>
+            <tr><th>Kedudukan</th><th>Nama</th><th>No. Kad Pengenalan</th></tr>
           </thead>
           <tbody id="previewBody"></tbody>
         </table>
@@ -382,9 +382,10 @@ function findColumn(headers, candidates) {
     progressWrap.style.display = 'block'
     importResult.innerHTML = ''
 
-    const rowsToInsert = parsedRows.map(r => ({
+    const rowsToInsert = parsedRows.map((r, idx) => ({
       full_name: r.full_name,
       mykad_number: r.mykad_number,
+      reg_position: idx + 1,      // NEW: 1, 2, 3, ...
       is_demo: true
     }))
 
