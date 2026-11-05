@@ -162,7 +162,7 @@
       <code>full_name,mykad_number</code><br>
       Contoh:<br>
       <code>Ahmad bin Ali,900101015566</code><br>
-      <span class="text-muted">(Tajuk kolum tidak kisah besar/kecil huruf. <code>nama</code>/<code>name</code> dan <code>no_kp</code>/<code>ic</code> juga dikenali secara automatik. No. KP mesti unik — sama macam borang pendaftaran sebenar.)</span>
+      <span class="text-muted">(Tajuk kolum tidak kisah besar/kecil huruf. <code>nama</code>/<code>name</code> dan <code>no_kp</code>/<code>ic</code> juga dikenali secara automatik. No. KP boleh berulang — sama macam borang pendaftaran sebenar.)</span>
     </div>
   </div>
 
@@ -391,16 +391,12 @@ function findColumn(headers, candidates) {
     const batchSize = 500
     let inserted = 0
     let failed = 0
-
+    
     for (let i = 0; i < rowsToInsert.length; i += batchSize) {
       const chunk = rowsToInsert.slice(i, i + batchSize)
-      // upsert + ignoreDuplicates instead of insert: a plain insert() sends
-      // the whole chunk as ONE SQL statement, so a single duplicate
-      // mykad_number fails the entire batch (0 inserted). Upsert lets
-      // Postgres skip just the conflicting rows and still insert the rest.
       const { error } = await supabase
         .from('participants')
-        .upsert(chunk, { onConflict: 'mykad_number', ignoreDuplicates: true })
+        .insert(chunk)
       if (error) {
         failed += chunk.length
         console.error(error)
