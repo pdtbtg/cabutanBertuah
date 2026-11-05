@@ -222,6 +222,8 @@
   .badge-soft.multi { background: var(--accent-soft); color: #92600a; border: 1px solid #fde1a6; }
 
   .select-hint { font-size: 0.78rem; color: var(--ink-soft); margin: 0.2rem 0 1rem; }
+
+  table.dataTable td.phone-cell { font-variant-numeric: tabular-nums; white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -284,6 +286,7 @@
             <th>#</th>
             <th>Nama Penuh</th>
             <th>No. MyKad</th>
+            <th>No. Telefon</th>
             <th>Tarikh Daftar</th>
             <th>Daftar</th>
           </tr>
@@ -341,7 +344,7 @@
       data: [],
       pageLength: 25,
       lengthMenu: [10, 25, 50, 100],
-      order: [[4, 'desc']],
+      order: [[5, 'desc']],
       autoWidth: false,
       columns: [
         {
@@ -351,6 +354,7 @@
         { data: null, orderable: false, searchable: false, className: 'num-col', defaultContent: '' },
         { data: 'full_name', render: (d, type) => type === 'display' ? esc(d) : (d || '') },
         { data: 'mykad_number', className: 'mykad-cell' },
+        { data: 'phone_number', className: 'phone-cell', defaultContent: '-', render: (d, type) => type === 'display' ? (d ? esc(d) : '-') : (d || '') },
         {
           data: 'reg_at', className: 'date-cell',
           render: (d, type) => (type === 'sort' || type === 'type') ? (d ? new Date(d).getTime() : 0) : formatDate(d)
@@ -362,7 +366,7 @@
       ],
       language: {
         search: '',
-        searchPlaceholder: 'Cari nama / MyKad...',
+        searchPlaceholder: 'Cari nama / MyKad / telefon...',
         lengthMenu: '_MENU_ baris setiap halaman',
         info: 'Memaparkan _START_ hingga _END_ daripada _TOTAL_ pendaftaran',
         infoEmpty: 'Tiada pendaftaran',
