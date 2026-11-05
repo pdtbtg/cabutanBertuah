@@ -470,10 +470,10 @@
         <div class="table-responsive">
           <table class="table table-sm align-middle">
             <thead>
-              <tr><th>#</th><th>Tarikh</th><th>No.</th><th>Nama</th><th>No. MyKad</th><th>No. Telefon</th><th>Masa</th><th></th></tr>
+              <tr><th>#</th><th>Tarikh</th><th>No.</th><th>Nama</th><th>No. MyKad</th><th>No. Telefon</th><th>Masa</th><th class="text-center">Dituntut</th><th></th></tr>
             </thead>
             <tbody id="posBody">
-              <tr><td colspan="8" class="text-center text-muted py-3">Tiada pemenang lagi.</td></tr>
+              <tr><td colspan="9" class="text-center text-muted py-3">Tiada pemenang lagi.</td></tr>
             </tbody>
           </table>
         </div>
@@ -731,13 +731,13 @@
   async function loadPosList() {
     const { data, error } = await supabase
       .from('position_winners')
-      .select('id, reg_date, reg_position, full_name, mykad_number, phone_number, created_at')
+      .select('id, reg_date, reg_position, full_name, mykad_number, phone_number, created_at, claimed')
       .order('created_at', { ascending: false })
     if (error) { console.error(error); toast('error', 'Gagal memuatkan senarai.'); return }
     posCache = data || []
 
     if (posCache.length === 0) {
-      posBody.innerHTML = `<tr><td colspan="8" class="text-center text-muted py-3">Tiada pemenang lagi.</td></tr>`
+      posBody.innerHTML = `<tr><td colspan="9" class="text-center text-muted py-3">Tiada pemenang lagi.</td></tr>`
       return
     }
     posBody.innerHTML = posCache.map((w, i) => `
@@ -749,9 +749,10 @@
         <td class="mykad-cell">${esc(w.mykad_number) || '-'}</td>
         <td class="mykad-cell">${esc(w.phone_number) || '-'}</td>
         <td>${formatDateMY(w.created_at)}</td>
+        <td class="text-center"><input type="checkbox" class="form-check-input pos-claim" data-id="${esc(w.id)}" ${w.claimed ? 'checked' : ''}></td>
         <td class="text-end text-nowrap">
           <button class="btn btn-soft btn-sm" data-action="show" data-id="${esc(w.id)}">Papar semula</button>
-          <button class="btn btn-soft danger btn-sm" data-action="delete" data-id="${esc(w.id)}">Padam</button>
+          <button class="btn btn-soft danger btn-sm" data-action="delete" data-id="${esc(w.id)}" ${w.claimed ? 'disabled' : ''}>Padam</button>
         </td>
       </tr>
     `).join('')
@@ -775,6 +776,34 @@
     }
   })
 
+  posBody.addEventListener('change', async (e) => {
+    const cb = e.target.closest('.pos-claim')
+    if (!cb) return
+    const w = posCache.find(x => String(x.id) === cb.dataset.id)
+    if (!w) return
+    const claiming = cb.checked
+
+    const res = await Swal.fire({
+      icon: 'question',
+      title: claiming ? 'Sahkan hadiah telah dituntut?' : 'Batalkan status dituntut?',
+      html: `<strong>${esc(w.full_name)}</strong><br>#${esc(w.reg_position)} · ${esc(dateLabel(w.reg_date))}<br><br>` +
+        (claiming ? 'Peserta ini disahkan sebagai pemenang dan tidak boleh dipilih lagi.'
+                  : 'Peserta ini tidak lagi dianggap pemenang dan boleh dipilih semula.'),
+      showCancelButton: true,
+      confirmButtonText: claiming ? 'Ya, sahkan' : 'Ya, batalkan',
+      cancelButtonText: 'Batal'
+    })
+    if (!res.isConfirmed) { cb.checked = !claiming; return }
+
+    const { error } = await supabase
+      .from('position_winners')
+      .update({ claimed: claiming, claimed_at: claiming ? new Date().toISOString() : null })
+      .eq('id', w.id)
+    if (error) { console.error(error); toast('error', 'Gagal mengemas kini.') }
+    else toast('success', claiming ? 'Disahkan dituntut.' : 'Status dibatalkan.')
+    await loadPosList()
+  })
+
   posInput.addEventListener('input', () => {
     posInput.value = posInput.value.replace(/\D/g, '').slice(0, 9)
     clearPreview()
@@ -796,23 +825,37 @@
     posCheckBtn.disabled = true
     try {
       const { start, end } = dayRange(date)
-      const { data, error } = await supabase
+            const { data, error } = await supabase
         .from('participants')
         .select('full_name, mykad_number, phone_number, reg_position')
         .eq('reg_position', n)
         .gte('registered_at', start)
         .lt('registered_at', end)
-        .limit(2)
+        .order('registered_at', { ascending: true })
+        .order('id', { ascending: true })
+        .limit(1)
       if (error) throw error
       if (!data || data.length === 0) {
         Swal.fire({ icon: 'warning', title: 'Tidak dijumpai', text: `Tiada peserta dengan nombor ${n} pada ${dateLabel(date)}.` })
         return
       }
-      if (data.length > 1) {
-        Swal.fire({ icon: 'error', title: 'Nombor bertindih', text: `Lebih daripada satu rekod bernombor ${n} pada ${dateLabel(date)}. Semak data reg_position.` })
+      const p = data[0]
+      // Sudah menang dan menuntut hadiah? (semak ikut No. MyKad, merentas semua hari)
+      const { data: won, error: wonErr } = await supabase
+        .from('position_winners')
+        .select('reg_position, reg_date')
+        .eq('mykad_number', p.mykad_number)
+        .eq('claimed', true)
+        .limit(1)
+      if (wonErr) throw wonErr
+      if (won && won.length > 0) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Sudah menang',
+          text: `${p.full_name} telah menang dan menuntut hadiah (#${won[0].reg_position}, ${dateLabel(won[0].reg_date)}). Sila pilih nombor lain.`
+        })
         return
       }
-      const p = data[0]
       posPending = { reg_date: date, reg_position: n, full_name: p.full_name, mykad_number: p.mykad_number, phone_number: p.phone_number }
       posPreviewNo.textContent = `#${n} · ${dateLabel(date)}`
       posPreviewName.textContent = p.full_name
