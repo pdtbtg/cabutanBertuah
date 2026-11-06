@@ -314,6 +314,10 @@
     // pemisahan optik antara belon supaya tidak saling bertindih/masuk ke dalam satu sama lain
     balloonSeparationMargin: 0.18,   // jarak tambahan (unit dunia) antara jejari dua belon
     balloonSeparationStrength: 10,   // kelajuan pembetulan jarak (semakin besar = semakin cepat menolak)
+    
+    // sebaran mendatar belon merentasi skrin
+    spreadMargin: 0.85,      // 1 = tepi skrin tepat; kurangkan supaya papan nama tidak terpotong
+    spreadEaseSpeed: 0.8,    // kelajuan belon bergerak ke lorong sasaran (semakin besar = lebih cepat)
   }
 
     const DRAMATIC = {
@@ -1330,6 +1334,7 @@ soundUnlockBtn.addEventListener('click', () => {
     nextScheduleIndex = 0
     dramaticMode = false
     allReleasedTriggered = false
+    spawnCounter = 0
   }
 
     function buildReleaseSchedule(payload) {
@@ -1375,7 +1380,13 @@ soundUnlockBtn.addEventListener('click', () => {
     phase = 'shaking'
     SoundManager.shakeStart()
   }
+    let spawnCounter = 0
 
+    // separuh lebar skrin yang kelihatan pada kedalaman z tertentu
+    function visibleHalfWidthAt(z) {
+      const halfH = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * (camera.position.z - z)
+      return halfH * camera.aspect
+    }
     function spawnBalloon(entry, now) {
       SoundManager.release()
       const color = CONFIG.colors[cryptoRandomInt(CONFIG.colors.length)]
@@ -1398,7 +1409,11 @@ soundUnlockBtn.addEventListener('click', () => {
       const popAt = (entry.isWinner && !dramaticMode)
         ? now + cryptoRandomRange(CONFIG.winnerPopDelayMinMs, CONFIG.winnerPopDelayMaxMs)
         : null
-  
+      const layerZ = cryptoRandomRange(-1.6, 1.6)
+      // jujukan golden-ratio: lorong sebar sekata merentasi skrin, bukan menggumpal
+      const lane = (spawnCounter++ * 0.618034) % 1
+      const targetX = (lane * 2 - 1) * visibleHalfWidthAt(BOX_BASE_POSITION.z + layerZ) * CONFIG.spreadMargin + cryptoRandomRange(-0.6, 0.6)
+      
       const balloon = {
         group, label, name: entry.name, isWinner: entry.isWinner,
         spawnTime: now,
@@ -1409,7 +1424,8 @@ soundUnlockBtn.addEventListener('click', () => {
         popAt,
         popped: false,
         baseXAtMouth: mouth.x,
-        layerZ: cryptoRandomRange(-1.6, 1.6),
+        layerZ,
+        targetX,
         spawnOffsetX: cryptoRandomRange(-0.9, 0.9),
         collisionOffsetX: 0,
         collisionOffsetZ: 0,
@@ -1473,7 +1489,7 @@ soundUnlockBtn.addEventListener('click', () => {
           b.group.position.y += b.riseSpeed * dt
         }
         const riseT = clamp01((b.group.position.y - 1.5) / 12)
-        b.group.position.x += (b.driftX * dt * 0.18)
+        b.group.position.x += (b.targetX - b.group.position.x) * Math.min(1, dt * CONFIG.spreadEaseSpeed)
         b.group.position.x += Math.sin(now / 650 + b.swaySeed) * 0.012
         b.group.rotation.z = Math.sin(now / 900 + b.swaySeed) * 0.07
         b.group.rotation.x = Math.sin(now / 1200 + b.swaySeed * 1.7) * 0.04
