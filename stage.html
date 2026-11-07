@@ -321,15 +321,16 @@
   }
 
     const DRAMATIC = {
-    riseSpeedMin: 1.6,
-    riseSpeedMax: 2.6,
-    balloonEmergeMs: 600,
-    releaseIntervalMinMs: 120,
-    releaseIntervalMaxMs: 300,
-    preBurstGrowMs: 1600,
+    riseSpeedMin: 1.8,
+    riseSpeedMax: 2.8,
+    balloonEmergeMs: 450,
+    balloonCount: 25,              // fewer balloons in cinematic mode
+    releaseIntervalMinMs: 50,
+    releaseIntervalMaxMs: 120,
+    preBurstGrowMs: 1200,
     preBurstScaleMult: 3.2,
-    suspenseDelayMinMs: 700,
-    suspenseDelayMaxMs: 1400,
+    suspenseDelayMinMs: 1200,      // keep >= preBurstGrowMs so the grow starts from zero
+    suspenseDelayMaxMs: 1500,
     hoverCeiling: 6,   // winner balloon holds here instead of drifting off-screen while waiting
   }
 
@@ -1343,9 +1344,10 @@ soundUnlockBtn.addEventListener('click', () => {
     const winnerName = payload.winnerName
     const sourcePool = (payload.names && payload.names.length ? payload.names : candidatePool)
       .filter((n) => n !== winnerName)
-    let others = cryptoShuffle(sourcePool).slice(0, CONFIG.balloonCount - 1)
+    const total = dramaticMode ? DRAMATIC.balloonCount : CONFIG.balloonCount
+    let others = cryptoShuffle(sourcePool).slice(0, total - 1)
     let fillIndex = 1
-    while (others.length < CONFIG.balloonCount - 1) {
+    while (others.length < total - 1) {
       others.push(`Peserta ${fillIndex++}`)
     }
 
