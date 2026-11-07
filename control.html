@@ -401,8 +401,9 @@
 
     <!-- Cabutan -->
     <div class="card-block" id="drawCard">
-      <div class="d-flex justify-content-between align-items-center mb-3" id="eligibleRow">
+      <div class="d-flex justify-content-between align-items-center mb-3 gap-2" id="eligibleRow">
         <span class="eligible-badge" id="eligibleBadge">Memuatkan...</span>
+        <button type="button" class="btn btn-soft btn-sm flex-shrink-0" id="refreshEligibleBtn">🔄 Muat Semula Peserta</button>
       </div>
 
       <div id="prizePickWrap">
@@ -532,7 +533,7 @@
   const stageLinkText = document.getElementById('stageLinkText')
   const vvipToggleBtn = document.getElementById('vvipToggleBtn')
   const vvipExitBtn = document.getElementById('vvipExitBtn')
-
+  const refreshEligibleBtn = document.getElementById('refreshEligibleBtn')
   const prizeForm = document.getElementById('prizeForm')
   const prizeNameInput = document.getElementById('prizeNameInput')
   const prizeSelect = document.getElementById('prizeSelect')
@@ -1163,7 +1164,14 @@
       </tr>
     `).join('')
   }
-
+  refreshEligibleBtn.addEventListener('click', async () => {
+    if (isSpinning) return
+    refreshEligibleBtn.disabled = true
+    await loadEligible()
+    refreshEligibleBtn.disabled = false
+    toast('success', 'Senarai peserta dikemas kini.')
+  })
+  
   function randomFrom(arr) {
     return arr[Math.floor(Math.random() * arr.length)]
   }
