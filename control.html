@@ -952,6 +952,21 @@
   // Setiap kali kelas <body> berubah (masuk/keluar mana-mana mod), simpan secara automatik
   new MutationObserver(persistMode).observe(document.body, { attributes: true, attributeFilter: ['class'] })
 
+  // ---------------- Ingat tempoh Dari/Hingga (kekal selepas F5) ----------------
+  const WINDOW_KEY = 'cabutan_window'
+  function loadWindow() {
+    try { return JSON.parse(localStorage.getItem(WINDOW_KEY)) || {} } catch (e) { return {} }
+  }
+  function saveWindow() {
+    try {
+      localStorage.setItem(WINDOW_KEY, JSON.stringify({
+        from: fpFrom.selectedDates[0] ? fpFrom.selectedDates[0].toISOString() : '',
+        until: fpUntil.selectedDates[0] ? fpUntil.selectedDates[0].toISOString() : ''
+      }))
+    } catch (e) {}
+  }
+  const savedWindow = loadWindow()
+  
   // ---------------- Flatpickr: registration eligibility window ----------------
    const fpFrom = flatpickr('#eligibleFrom', {
     enableTime: true,
@@ -960,6 +975,7 @@
     maxDate: 'today',
     time_24hr: false,
     disableMobile: true,
+    defaultDate: savedWindow.from ? new Date(savedWindow.from) : null,
     onChange: (selectedDates, dateStr, instance) => {
       instance.altInput.value = selectedDates[0] ? formatDateMY(selectedDates[0]) : ''
       // "Hingga" cannot be earlier than "Dari"
@@ -978,6 +994,7 @@
     maxDate: 'today',
     time_24hr: false,
     disableMobile: true,
+    defaultDate: savedWindow.until ? new Date(savedWindow.until) : null,
     onChange: (selectedDates, dateStr, instance) => {
       instance.altInput.value = selectedDates[0] ? formatDateMY(selectedDates[0]) : ''
       // "Dari" cannot be later than "Hingga"
@@ -989,7 +1006,11 @@
     }
   })
 
+  if (fpFrom.selectedDates[0]) fpUntil.set('minDate', fpFrom.selectedDates[0])
+  if (fpUntil.selectedDates[0]) fpFrom.set('maxDate', fpUntil.selectedDates[0])
+
   function onWindowChanged() {
+    saveWindow()
     // A changed window means a different eligible pool, so it's a new session.
     currentDrawId = null
     loadEligible()
