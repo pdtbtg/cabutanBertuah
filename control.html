@@ -959,6 +959,7 @@
     dateFormat: 'Y-m-d H:i',
     maxDate: 'today',
     time_24hr: false,
+    disableMobile: true,
     onChange: (selectedDates, dateStr, instance) => {
       instance.altInput.value = selectedDates[0] ? formatDateMY(selectedDates[0]) : ''
       // "Hingga" cannot be earlier than "Dari"
@@ -976,6 +977,7 @@
     dateFormat: 'Y-m-d H:i',
     maxDate: 'today',
     time_24hr: false,
+    disableMobile: true,
     onChange: (selectedDates, dateStr, instance) => {
       instance.altInput.value = selectedDates[0] ? formatDateMY(selectedDates[0]) : ''
       // "Dari" cannot be later than "Hingga"
