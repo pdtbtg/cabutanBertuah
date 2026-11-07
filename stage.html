@@ -321,9 +321,11 @@
   }
 
     const DRAMATIC = {
-    riseSpeedMin: 0.45,
-    riseSpeedMax: 0.75,
-    balloonEmergeMs: 950,
+    riseSpeedMin: 1.6,
+    riseSpeedMax: 2.6,
+    balloonEmergeMs: 600,
+    releaseIntervalMinMs: 120,
+    releaseIntervalMaxMs: 300,
     preBurstGrowMs: 1600,
     preBurstScaleMult: 3.2,
     suspenseDelayMinMs: 700,
@@ -1359,9 +1361,11 @@ soundUnlockBtn.addEventListener('click', () => {
       order = cryptoShuffle([...others, winnerName])
     }
 
+  const relMin = dramaticMode ? DRAMATIC.releaseIntervalMinMs : CONFIG.releaseIntervalMinMs
+    const relMax = dramaticMode ? DRAMATIC.releaseIntervalMaxMs : CONFIG.releaseIntervalMaxMs
     let t = 0
     return order.map((name) => {
-      t += cryptoRandomRange(CONFIG.releaseIntervalMinMs, CONFIG.releaseIntervalMaxMs)
+      t += cryptoRandomRange(relMin, relMax)
       return { name, emitAtMs: t, isWinner: name === winnerName }
     })
   }
