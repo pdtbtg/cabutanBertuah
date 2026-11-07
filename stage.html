@@ -324,13 +324,14 @@
     riseSpeedMin: 1.8,
     riseSpeedMax: 2.8,
     balloonEmergeMs: 450,
-    balloonCount: 25,              // fewer balloons in cinematic mode
-    releaseIntervalMinMs: 50,
-    releaseIntervalMaxMs: 120,
-    preBurstGrowMs: 1200,
+    balloonCount: 15,              // fewer balloons in cinematic mode
+    shakeMs: 400,                  // cinematic-only box shake (normal mode keeps CONFIG.shakeDurationMs)
+    releaseIntervalMinMs: 60,
+    releaseIntervalMaxMs: 90,
+    preBurstGrowMs: 900,
     preBurstScaleMult: 3.2,
-    suspenseDelayMinMs: 1200,      // keep >= preBurstGrowMs so the grow starts from zero
-    suspenseDelayMaxMs: 1500,
+    suspenseDelayMinMs: 1100,      // keep >= preBurstGrowMs so the grow starts from zero
+    suspenseDelayMaxMs: 1200,
     hoverCeiling: 6,   // winner balloon holds here instead of drifting off-screen while waiting
   }
 
@@ -1382,7 +1383,7 @@ soundUnlockBtn.addEventListener('click', () => {
     releaseSchedule = buildReleaseSchedule(payload)
 
     phaseStartTime = performance.now()
-    shakeTimer = CONFIG.shakeDurationMs
+    shakeTimer = dramaticMode ? DRAMATIC.shakeMs : CONFIG.shakeDurationMs
     phase = 'shaking'
     SoundManager.shakeStart()
   }
@@ -1538,7 +1539,7 @@ soundUnlockBtn.addEventListener('click', () => {
 
     if (phase === 'shaking') {
       shakeTimer -= dt * 1000
-      const shakeT = clamp01(shakeTimer / CONFIG.shakeDurationMs)
+      const shakeT = clamp01(shakeTimer / (dramaticMode ? DRAMATIC.shakeMs : CONFIG.shakeDurationMs))
       const s = CONFIG.shakeStrength * shakeT
       giftBox.group.position.x = boxRestPosition.x + (cryptoRandomFloat() - 0.5) * s
       giftBox.group.rotation.z = boxRestRotationZ + (cryptoRandomFloat() - 0.5) * s * 0.6
