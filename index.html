@@ -439,7 +439,6 @@
             </div>
             <h3>Berjaya, terima kasih!<span class="success-name" id="successName"></span></h3>
             <p>Anda berjaya mendaftar untuk cabutan bertuah.</p>
-            <div class="reg-count-box" id="regCountBox"></div>
             <p class="reg-note" id="regNote"></p>
             <div class="success-badge">
               <i class="bi bi-megaphone-fill"></i>
@@ -540,7 +539,6 @@
   const formView = document.getElementById('formView')
   const successView = document.getElementById('successView')
   const successName = document.getElementById('successName')
-  const regCountBox = document.getElementById('regCountBox')
   const regNote = document.getElementById('regNote')
   const registerAnotherBtn = document.getElementById('registerAnotherBtn')
   const urusSetiaInput = document.getElementById('urus_setia')
@@ -692,19 +690,7 @@
     }
 
         // How many times has this MyKad registered (including this one)?
-    let regCount = 1
-    try {
-      const { data: cnt, error: cntErr } = await supabase
-        .rpc('get_registration_count', { p_mykad_number: mykad_number })
-      if (!cntErr && cnt) regCount = cnt
-    } catch (e) { console.error(e) }
-
-    regCountBox.textContent = regCount === 1
-      ? 'Ini pendaftaran pertama anda.'
-      : `Anda telah mendaftar sebanyak ${regCount} kali.`
-    regNote.textContent = (regCount > 1
-      ? 'Pendaftaran berulang tidak menambah peluang anda. '
-      : '') +
+    regNote.textContent =
       'Hanya satu (1) nama bagi setiap No. MyKad akan dimasukkan dalam setiap sesi cabutan, ' +
       'dan pemenang yang telah dipilih tidak akan dipilih semula.'
 
