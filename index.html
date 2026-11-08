@@ -107,6 +107,7 @@
   .brand-subtitle { color: var(--ink-soft); font-size: 0.92rem; margin-top: 0.35rem; }
 
   /* ---------------- Fields ---------------- */
+  #full_name { text-transform: uppercase; }
   .field-group { margin-bottom: 1.5dvh; }
   .field-group label {
     display: block;
@@ -382,7 +383,7 @@
                 <label for="full_name">Nama Penuh</label>
                 <div class="input-icon-wrap">
                   <i class="bi bi-person-fill icon-slot"></i>
-                  <input type="text" class="form-control" id="full_name" placeholder="Contoh: AHMAD BIN ALI" autofocus required>
+                  <input type="text" class="form-control" id="full_name" placeholder="Contoh: AHMAD BIN ALI" autocomplete="off" autocapitalize="characters" spellcheck="false" autocorrect="off" required>
                 </div>
                 <div class="field-error">Sila isi nama penuh anda.</div>
               </div>
@@ -576,9 +577,6 @@
   }
 
   fullNameInput.addEventListener('input', () => {
-    const cursorPos = fullNameInput.selectionStart
-    fullNameInput.value = fullNameInput.value.toUpperCase()
-    fullNameInput.setSelectionRange(cursorPos, cursorPos)
     nameGroup.classList.remove('has-error')
   })
 
@@ -587,9 +585,6 @@
     const digitsOnly = mykadInput.value.replace(/\D/g, '').slice(0, 12)
     mykadInput.value = digitsOnly
     mykadGroup.classList.remove('has-error')
-  })
-  mykadInput.addEventListener('keypress', (e) => {
-    if (!/[0-9]/.test(e.key)) e.preventDefault()
   })
   mykadInput.addEventListener('paste', (e) => {
     e.preventDefault()
@@ -630,7 +625,7 @@
   form.addEventListener('submit', async (e) => {
     e.preventDefault()
 
-    const full_name = fullNameInput.value.trim()
+    const full_name = fullNameInput.value.trim().replace(/\s+/g, ' ').toUpperCase()
     const mykad_number = mykadInput.value.trim()
     const phone_number = phoneInput.value.trim()
     // reset previous inline errors
